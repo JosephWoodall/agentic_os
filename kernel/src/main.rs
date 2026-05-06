@@ -168,6 +168,7 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         Some(device) => InferenceEngine::init(device.as_bytes()),
         None => InferenceEngine::mock(),
     };
+    info!("[Phase 2] Inference engine created!");
     info!("[Phase 2] Inference mode: {:?}", inference.mode);
 
     // ═══════════════════════════════════════════════════════════════════
@@ -281,6 +282,8 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
+    log::error!("\r\n══ KERNEL PANIC ══\r\n{}", info);
+    
     use core::fmt::Write;
     struct SerialWriter;
     impl Write for SerialWriter {

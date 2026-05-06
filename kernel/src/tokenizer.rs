@@ -29,16 +29,20 @@ pub struct Tokenizer {
 impl Tokenizer {
     /// Create a new tokenizer with the given vocabulary.
     pub fn new(vocab: Vec<TokenEntry>) -> Self {
+        log::info!("Tokenizer::new: start");
         let mut token_to_id = BTreeMap::new();
+        log::info!("Tokenizer::new: iterating vocab");
         for (i, entry) in vocab.iter().enumerate() {
             token_to_id.insert(entry.text.clone(), i as u32);
         }
 
+        log::info!("Tokenizer::new: setting special tokens");
         // Default special tokens (Gemma conventions)
         let bos_token = token_to_id.get("<bos>").copied().unwrap_or(2);
         let eos_token = token_to_id.get("<eos>").copied().unwrap_or(1);
         let pad_token = token_to_id.get("<pad>").copied().unwrap_or(0);
 
+        log::info!("Tokenizer::new: done");
         Self {
             vocab,
             token_to_id,
@@ -80,6 +84,7 @@ impl Tokenizer {
         ];
 
         // Add ASCII printable characters (32-126)
+        log::info!("Tokenizer::mock: before adding entries");
         for (text, score, ttype) in &entries {
             vocab.push(TokenEntry {
                 text: String::from(*text),
@@ -87,7 +92,7 @@ impl Tokenizer {
                 token_type: *ttype,
             });
         }
-
+        log::info!("Tokenizer::mock: before a-z");
         // Pad to at least 128 tokens with single chars
         for c in b'a'..=b'z' {
             let s = String::from(c as char);
@@ -99,6 +104,7 @@ impl Tokenizer {
                 });
             }
         }
+        log::info!("Tokenizer::mock: before 0-9");
         for c in b'0'..=b'9' {
             vocab.push(TokenEntry {
                 text: String::from(c as char),
@@ -106,7 +112,7 @@ impl Tokenizer {
                 token_type: 1,
             });
         }
-
+        log::info!("Tokenizer::mock: before Self::new()");
         Self::new(vocab)
     }
 

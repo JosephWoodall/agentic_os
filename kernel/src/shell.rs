@@ -181,7 +181,14 @@ impl Shell {
             // Word wrap
             let mut remaining = text;
             while !remaining.is_empty() {
-                let split_at = remaining.len().min(chars_per_line);
+                let mut split_at = remaining.len().min(chars_per_line);
+                while split_at > 0 && !remaining.is_char_boundary(split_at) {
+                    split_at -= 1;
+                }
+                if split_at == 0 {
+                    // If a single character is too wide, just take the first char
+                    split_at = remaining.chars().next().unwrap().len_utf8();
+                }
                 self.output_lines.push(OutputLine {
                     text: String::from(&remaining[..split_at]),
                     color,

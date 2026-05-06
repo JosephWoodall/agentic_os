@@ -51,7 +51,9 @@ impl InferenceEngine {
                 // Check if we have actual tensor data
                 if model.tensors.is_empty() {
                     log::info!("No tensors in GGUF — using MOCK inference mode.");
-                    return Self::mock();
+                    let m = Self::mock();
+                    log::info!("Created MOCK inference mode from init.");
+                    return m;
                 }
 
                 // Attempt to build real tokenizer from GGUF vocab

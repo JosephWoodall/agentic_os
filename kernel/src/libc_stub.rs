@@ -54,7 +54,22 @@ pub unsafe extern "C" fn memset(s: *mut c_void, c: i32, n: usize) -> *mut c_void
 
 #[no_mangle]
 pub unsafe extern "C" fn memmove(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
-    ptr::copy(src as *const u8, dest as *mut u8, n);
+    let d = dest as *mut u8;
+    let s = src as *const u8;
+    if d == s as *mut u8 || n == 0 {
+        return dest;
+    }
+    if (d as usize) < (s as usize) {
+        // Forward copy
+        for i in 0..n {
+            core::ptr::write_volatile(d.add(i), core::ptr::read_volatile(s.add(i)));
+        }
+    } else {
+        // Backward copy
+        for i in (0..n).rev() {
+            core::ptr::write_volatile(d.add(i), core::ptr::read_volatile(s.add(i)));
+        }
+    }
     dest
 }
 

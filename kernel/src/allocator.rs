@@ -144,18 +144,24 @@ unsafe impl GlobalAlloc for BumpSlabAllocator {
         let size = layout.size();
         let align = layout.align();
 
-        // Try slab first for small allocations
-        if self.slab_pools_initialized.load(Ordering::Relaxed) == 1 {
-            if let Some(class_idx) = Self::slab_class(size, align) {
-                let ptr = unsafe { SLAB_POOLS[class_idx].alloc() };
-                if !ptr.is_null() {
-                    return ptr;
-                }
-            }
-        }
-
+        let mut iters = 0;
         // Fall back to bump allocator
         loop {
+            iters += 1;
+            if iters > 100 {
+                let msg = b"LOOP";
+                for &b in msg {
+                    unsafe {
+                        core::arch::asm!(
+                            "out dx, al",
+                            in("dx") 0x3F8u16,
+                            in("al") b,
+                        );
+                    }
+                }
+                loop { core::hint::spin_loop(); }
+            }
+
             let current = self.current.load(Ordering::Relaxed);
             if current == 0 {
                 // BEFORE init() is called by main, uefi-rs may try to allocate memory!
@@ -168,6 +174,7 @@ unsafe impl GlobalAlloc for BumpSlabAllocator {
                 let e_end = e_start + size;
 
                 if e_end > 65536 {
+                    // Cannot use log::error here because logger might not be ready
                     return null_mut();
                 }
 
@@ -184,6 +191,18 @@ unsafe impl GlobalAlloc for BumpSlabAllocator {
             let alloc_end = alloc_start + size;
 
             if alloc_end > self.end.load(Ordering::Relaxed) {
+                // Write OOM to serial and spin
+                let oom = b"OOM!";
+                for &b in oom {
+                    unsafe {
+                        core::arch::asm!(
+                            "out dx, al",
+                            in("dx") 0x3F8u16,
+                            in("al") b,
+                        );
+                    }
+                }
+                loop { core::hint::spin_loop(); }
                 return null_mut();
             }
 
@@ -197,18 +216,7 @@ unsafe impl GlobalAlloc for BumpSlabAllocator {
         }
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        let size = layout.size();
-        let align = layout.align();
-
-        // Return to slab if it fits a size class
-        if self.slab_pools_initialized.load(Ordering::Relaxed) == 1 {
-            if let Some(class_idx) = Self::slab_class(size, align) {
-                unsafe {
-                    SLAB_POOLS[class_idx].dealloc(ptr);
-                }
-            }
-        }
+    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
         // Bump allocator can't truly free arbitrary blocks — this is expected.
     }
 }
