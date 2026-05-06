@@ -1,0 +1,14 @@
+/home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/deps/serde-c464ad541ba54668.d: /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/build/serde-095fae2c209ac818/out/private.rs
+
+/home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/deps/libserde-c464ad541ba54668.rlib: /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/build/serde-095fae2c209ac818/out/private.rs
+
+/home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/deps/libserde-c464ad541ba54668.rmeta: /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/build/serde-095fae2c209ac818/out/private.rs
+
+/home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/home/redleadr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/build/serde-095fae2c209ac818/out/private.rs:
+
+# env-dep:OUT_DIR=/home/redleadr/workspace/agentic_os/target/x86_64-unknown-uefi/debug/build/serde-095fae2c209ac818/out

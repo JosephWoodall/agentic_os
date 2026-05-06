@@ -1,0 +1,12 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+uefi = { version = "0.31.0", features = ["logger", "alloc"] }
+log = "0.4"
+font8x8 = { version = "0.3", default-features = false, features = ["unicode"] }
+libm = "0.2"
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+serde-json-core = "0.6"
