@@ -76,8 +76,14 @@ impl Shell {
         shell.print_colored("║     Natural Language Shell v0.1                         ║", colors::ACCENT_BLUE);
         shell.print_colored("╚══════════════════════════════════════════════════════════╝", colors::ACCENT_BLUE);
         shell.print_colored("", colors::WHITE);
+        shell.print_colored("Welcome to Agentic OS! Here is what you can do:", colors::WHITE);
+        shell.print_colored(" - Manage Processes: 'run a browser', 'spawn terminal', 'kill 3'", colors::DIM_WHITE);
+        shell.print_colored(" - Continuous State: 'sleep 2' (compress), 'wake 2' (hydrate)", colors::DIM_WHITE);
+        shell.print_colored(" - File System: 'read config', 'save file'", colors::DIM_WHITE);
+        shell.print_colored(" - System Info: 'status', 'info'", colors::DIM_WHITE);
+        shell.print_colored("", colors::WHITE);
         shell.print_colored("Type natural language commands. The LLM executive will translate", colors::DIM_WHITE);
-        shell.print_colored("your intent into system calls. Try: 'spawn a new task'", colors::DIM_WHITE);
+        shell.print_colored("your intent into system calls.", colors::DIM_WHITE);
         shell.print_colored("", colors::WHITE);
 
         shell

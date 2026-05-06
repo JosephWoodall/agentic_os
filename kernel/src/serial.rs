@@ -30,7 +30,10 @@ pub fn is_transmit_empty() -> bool {
 }
 
 pub fn write_byte(b: u8) {
-    while !is_transmit_empty() {
+    for _ in 0..10000 {
+        if is_transmit_empty() {
+            break;
+        }
         core::hint::spin_loop();
     }
     unsafe { outb(COM1, b); }
