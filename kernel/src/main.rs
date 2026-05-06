@@ -81,22 +81,38 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // ═══════════════════════════════════════════════════════════════════
     // PHASE 1: Memory Initialization
     // ═══════════════════════════════════════════════════════════════════
-    info!("[Phase 1] Initializing bump+slab allocator ({} MB)...", HEAP_SIZE / 1024 / 1024);
+    let mut heap_size = 2 * 1024 * 1024 * 1024; // Try 2GB first
+    let mut heap_start = u64::MAX;
 
-    let heap_pages = HEAP_SIZE / 4096;
-    let heap_start = system_table
-        .boot_services()
-        .allocate_pages(
+    for &size in &[2 * 1024 * 1024 * 1024, 512 * 1024 * 1024, 128 * 1024 * 1024] {
+        let pages = size / 4096;
+        if let Ok(ptr) = system_table.boot_services().allocate_pages(
             uefi::table::boot::AllocateType::AnyPages,
             uefi::table::boot::MemoryType::LOADER_DATA,
-            heap_pages,
-        )
-        .expect("Failed to allocate heap memory");
+            pages,
+        ) {
+            heap_size = size;
+            heap_start = ptr;
+            break;
+        }
+    }
+
+    if heap_start == u64::MAX {
+        panic!("Failed to allocate even 128MB of contiguous heap memory!");
+    }
+
+    // If UEFI returns physical address 0, adjust it to avoid Rust null pointer bugs
+    if heap_start == 0 {
+        heap_start += 4096;
+        heap_size -= 4096;
+    }
+
+    info!("[Phase 1] Initializing bump+slab allocator ({} MB)...", heap_size / 1024 / 1024);
 
     unsafe {
-        ALLOCATOR.init(heap_start as usize, HEAP_SIZE);
+        ALLOCATOR.init(heap_start as usize, heap_size);
     }
-    info!("[Phase 1] Allocator ready. {} MB heap.", HEAP_SIZE / 1024 / 1024);
+    info!("[Phase 1] Allocator ready. {} MB heap.", heap_size / 1024 / 1024);
 
     // ═══════════════════════════════════════════════════════════════════
     // PHASE 1: Framebuffer Initialization (GOP)
@@ -274,9 +290,17 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 }
 
 #[panic_handler]
-fn panic(info: &core::panic::PanicInfo) -> ! {
-    log::error!("══ KERNEL PANIC ══");
-    log::error!("{}", info);
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    let msg = b"KERNEL PANIC OCCURRED\r\n";
+    for &b in msg {
+        unsafe {
+            core::arch::asm!(
+                "out dx, al",
+                in("dx") 0x3F8u16,
+                in("al") b,
+            );
+        }
+    }
     loop {
         core::hint::spin_loop();
     }

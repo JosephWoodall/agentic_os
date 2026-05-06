@@ -161,7 +161,8 @@ fn run(sh: &Shell, _release: bool, graphics: bool) -> anyhow::Result<()> {
                 -net none
                 -serial stdio
                 -device virtio-mouse-pci
-                -device virtio-keyboard-pci"
+                -device virtio-keyboard-pci
+                -monitor tcp:127.0.0.1:5556,server,nowait"
         )
         .run()?;
     } else {

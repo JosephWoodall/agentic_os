@@ -158,7 +158,26 @@ unsafe impl GlobalAlloc for BumpSlabAllocator {
         loop {
             let current = self.current.load(Ordering::Relaxed);
             if current == 0 {
-                return null_mut();
+                // BEFORE init() is called by main, uefi-rs may try to allocate memory!
+                // We use a small static buffer for these early boot allocations.
+                static mut EARLY_BUMP_BUFFER: [u8; 65536] = [0; 65536];
+                static EARLY_BUMP_CURRENT: AtomicUsize = AtomicUsize::new(0);
+
+                let e_current = EARLY_BUMP_CURRENT.load(Ordering::Relaxed);
+                let e_start = (e_current + align - 1) & !(align - 1);
+                let e_end = e_start + size;
+
+                if e_end > 65536 {
+                    return null_mut();
+                }
+
+                if EARLY_BUMP_CURRENT
+                    .compare_exchange_weak(e_current, e_end, Ordering::SeqCst, Ordering::Relaxed)
+                    .is_ok()
+                {
+                    return unsafe { EARLY_BUMP_BUFFER.as_mut_ptr().add(e_start) };
+                }
+                continue;
             }
 
             let alloc_start = (current + align - 1) & !(align - 1);

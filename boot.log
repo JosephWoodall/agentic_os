@@ -1,0 +1,837 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `target/debug/xtask run --release`
+Building kernel...
+$ cargo build --package kernel --target x86_64-unknown-uefi --release
+warning: unused import: `alloc::vec::Vec`
+ --> kernel/src/syscall.rs:9:5
+  |
+9 | use alloc::vec::Vec;
+  |     ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `alloc::format`
+ --> kernel/src/context.rs:5:5
+  |
+5 | use alloc::format;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `alloc::format`
+ --> kernel/src/compressor.rs:9:5
+  |
+9 | use alloc::format;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `ProcessState`
+ --> kernel/src/scheduler.rs:8:44
+  |
+8 | use crate::state::{SystemState, EventType, ProcessState};
+  |                                            ^^^^^^^^^^^^
+
+warning: unused import: `KeyEvent`
+  --> kernel/src/main.rs:62:33
+   |
+62 | use crate::keyboard::{Keyboard, KeyEvent};
+   |                                 ^^^^^^^^
+
+warning: unused variable: `e`
+   --> kernel/src/main.rs:102:17
+    |
+102 |             Err(e) => {
+    |                 ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `HEAP_SIZE` is never used
+  --> kernel/src/main.rs:69:7
+   |
+69 | const HEAP_SIZE: usize = 2 * 1024 * 1024 * 1024;
+   |       ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `block_size` is never read
+  --> kernel/src/allocator.rs:31:5
+   |
+28 | struct SlabPool {
+   |        -------- field in this struct
+...
+31 |     block_size: usize,
+   |     ^^^^^^^^^^
+
+warning: method `used` is never used
+   --> kernel/src/allocator.rs:110:12
+    |
+ 88 | impl BumpSlabAllocator {
+    | ---------------------- method in this implementation
+...
+110 |     pub fn used(&self) -> usize {
+    |            ^^^^
+
+warning: methods `draw_string_wrapped`, `scroll_up`, `draw_cursor`, and `xor_rect` are never used
+   --> kernel/src/framebuffer.rs:139:12
+    |
+ 44 | impl Framebuffer {
+    | ---------------- methods in this implementation
+...
+139 |     pub fn draw_string_wrapped(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+170 |     pub fn scroll_up(&mut self, lines: usize) {
+    |            ^^^^^^^^^
+...
+202 |     pub fn draw_cursor(&mut self, col: usize, row: usize, color: u32) {
+    |            ^^^^^^^^^^^
+...
+209 |     pub fn xor_rect(&mut self, x: usize, y: usize, w: usize, h: usize) {
+    |            ^^^^^^^^
+
+warning: constant `YELLOW` is never used
+  --> kernel/src/framebuffer.rs:12:15
+   |
+12 |     pub const YELLOW: u32 = 0x0000FFFF;
+   |               ^^^^^^
+
+warning: variants `InvalidMagic` and `OutOfBounds` are never constructed
+  --> kernel/src/storage.rs:15:5
+   |
+11 | pub enum StorageError {
+   |          ------------ variants in this enum
+...
+15 |     InvalidMagic,
+   |     ^^^^^^^^^^^^
+...
+19 |     OutOfBounds,
+   |     ^^^^^^^^^^^
+   |
+   = note: `StorageError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: fields `block_size` and `block_count` are never read
+  --> kernel/src/storage.rs:27:9
+   |
+23 | pub struct BlockDevice {
+   |            ----------- fields in this struct
+...
+27 |     pub block_size: usize,
+   |         ^^^^^^^^^^
+28 |     /// Total number of blocks.
+29 |     pub block_count: u64,
+   |         ^^^^^^^^^^^
+
+warning: method `read_range` is never used
+   --> kernel/src/storage.rs:122:12
+    |
+ 32 | impl BlockDevice {
+    | ---------------- method in this implementation
+...
+122 |     pub fn read_range(&self, offset: usize, len: usize) -> Result<&[u8]...
+    |            ^^^^^^^^^^
+
+warning: associated items `zeros`, `layer_norm`, `softmax`, and `sample_top_p` are never used
+   --> kernel/src/tensor.rs:18:12
+    |
+ 13 | impl Tensor {
+    | ----------- associated items in this implementation
+...
+ 18 |     pub fn zeros(shape: Vec<usize>) -> Self {
+    |            ^^^^^
+...
+ 54 |     pub fn layer_norm(&self, weight: &[f32], bias: &[f32], eps: f32) ->...
+    |            ^^^^^^^^^^
+...
+ 86 |     pub fn softmax(&mut self) {
+    |            ^^^^^^^
+...
+135 |     pub fn sample_top_p(&self, top_p: f32, temperature: f32, seed: u64)...
+    |            ^^^^^^^^^^^^
+
+warning: function `matmul` is never used
+   --> kernel/src/tensor.rs:215:8
+    |
+215 | pub fn matmul(out: &mut [f32], a: &[f32], b: &[f32], m: usize, n: usize...
+    |        ^^^^^^
+
+warning: field `score` is never read
+  --> kernel/src/tokenizer.rs:13:9
+   |
+11 | pub struct TokenEntry {
+   |            ---------- field in this struct
+12 |     pub text: String,
+13 |     pub score: f32,
+   |         ^^^^^
+   |
+   = note: `TokenEntry` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `bos_token`, `eos_token`, and `pad_token` are never read
+  --> kernel/src/tokenizer.rs:24:9
+   |
+18 | pub struct Tokenizer {
+   |            --------- fields in this struct
+...
+24 |     pub bos_token: u32,
+   |         ^^^^^^^^^
+25 |     pub eos_token: u32,
+   |         ^^^^^^^^^
+26 |     pub pad_token: u32,
+   |         ^^^^^^^^^
+
+warning: method `vocab_size` is never used
+   --> kernel/src/tokenizer.rs:162:12
+    |
+ 29 | impl Tokenizer {
+    | -------------- method in this implementation
+...
+162 |     pub fn vocab_size(&self) -> usize {
+    |            ^^^^^^^^^^
+
+warning: associated functions `gemma_2b` and `mock` are never used
+  --> kernel/src/transformer.rs:28:12
+   |
+26 | impl TransformerConfig {
+   | ---------------------- associated functions in this implementation
+27 |     /// Default Gemma-2B-like configuration.
+28 |     pub fn gemma_2b() -> Self {
+   |            ^^^^^^^^
+...
+44 |     pub fn mock() -> Self {
+   |            ^^^^
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:11:24
+   |
+11 |     UnsupportedVersion(u32),
+   |     ------------------ ^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+11 -     UnsupportedVersion(u32),
+11 +     UnsupportedVersion(()),
+   |
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:13:22
+   |
+13 |     InvalidValueType(u32),
+   |     ---------------- ^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+13 -     InvalidValueType(u32),
+13 +     InvalidValueType(()),
+   |
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:20:11
+   |
+20 |     Uint8(u8),
+   |     ----- ^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufValue` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+20 -     Uint8(u8),
+20 +     Uint8(()),
+   |
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:21:10
+   |
+21 |     Int8(i8),
+   |     ---- ^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufValue` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+21 -     Int8(i8),
+21 +     Int8(()),
+   |
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:22:12
+   |
+22 |     Uint16(u16),
+   |     ------ ^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufValue` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+22 -     Uint16(u16),
+22 +     Uint16(()),
+   |
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:23:11
+   |
+23 |     Int16(i16),
+   |     ----- ^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufValue` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+23 -     Int16(i16),
+23 +     Int16(()),
+   |
+
+warning: field `0` is never read
+  --> kernel/src/gguf.rs:27:10
+   |
+27 |     Bool(bool),
+   |     ---- ^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `GgufValue` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+27 -     Bool(bool),
+27 +     Bool(()),
+   |
+
+warning: method `as_u32` is never used
+  --> kernel/src/gguf.rs:37:12
+   |
+35 | impl GgufValue {
+   | -------------- method in this implementation
+36 |     /// Extract as u32, if possible.
+37 |     pub fn as_u32(&self) -> Option<u32> {
+   |            ^^^^^^
+
+warning: fields `name`, `dimensions`, `tensor_type`, and `offset` are never read
+  --> kernel/src/gguf.rs:86:9
+   |
+85 | pub struct GgufTensorInfo {
+   |            -------------- fields in this struct
+86 |     pub name: String,
+   |         ^^^^
+87 |     pub dimensions: Vec<u64>,
+   |         ^^^^^^^^^^
+88 |     pub tensor_type: u32,
+   |         ^^^^^^^^^^^
+89 |     pub offset: u64,
+   |         ^^^^^^
+   |
+   = note: `GgufTensorInfo` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `tensor_data_offset` is never read
+  --> kernel/src/gguf.rs:97:9
+   |
+93 | pub struct GgufModel {
+   |            --------- field in this struct
+...
+97 |     pub tensor_data_offset: usize,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: method `is_mock` is never used
+   --> kernel/src/inference.rs:245:12
+    |
+ 31 | impl InferenceEngine {
+    | -------------------- method in this implementation
+...
+245 |     pub fn is_mock(&self) -> bool {
+    |            ^^^^^^^
+
+warning: variant `ImpossibleOperation` is never constructed
+  --> kernel/src/syscall.rs:86:5
+   |
+74 | pub enum SyscallError {
+   |          ------------ variant in this enum
+...
+86 |     ImpossibleOperation(String),
+   |     ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `SyscallError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: constant `VALID_COMMANDS` is never used
+   --> kernel/src/syscall.rs:300:11
+    |
+300 | pub const VALID_COMMANDS: &[&str] = &[
+    |           ^^^^^^^^^^^^^^
+
+warning: methods `reset`, `is_valid_command`, `valid_next_chars`, `is_complete`, and `is_error` are never used
+   --> kernel/src/grammar.rs:76:12
+    |
+ 62 | impl GrammarConstraint {
+    | ---------------------- methods in this implementation
+...
+ 76 |     pub fn reset(&mut self) {
+    |            ^^^^^
+...
+268 |     pub fn is_valid_command(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^
+...
+276 |     pub fn valid_next_chars(&self) -> Vec<char> {
+    |            ^^^^^^^^^^^^^^^^
+...
+337 |     pub fn is_complete(&self) -> bool {
+    |            ^^^^^^^^^^^
+...
+342 |     pub fn is_error(&self) -> bool {
+    |            ^^^^^^^^
+
+warning: variant `Suspended` is never constructed
+  --> kernel/src/state.rs:18:5
+   |
+12 | pub enum ProcessState {
+   |          ------------ variant in this enum
+...
+18 |     Suspended,
+   |     ^^^^^^^^^
+   |
+   = note: `ProcessState` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `SyscallOk`, `SyscallError`, and `SecurityViolation` are never constructed
+   --> kernel/src/state.rs:112:5
+    |
+107 | pub enum EventType {
+    |          --------- variants in this enum
+...
+112 |     SyscallOk,
+    |     ^^^^^^^^^
+113 |     SyscallError,
+    |     ^^^^^^^^^^^^
+...
+116 |     SecurityViolation,
+    |     ^^^^^^^^^^^^^^^^^
+    |
+    = note: `EventType` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: methods `spawn` and `find_process_mut` are never used
+   --> kernel/src/state.rs:159:12
+    |
+147 | impl SystemState {
+    | ---------------- methods in this implementation
+...
+159 |     pub fn spawn(&mut self, name: &str) -> u32 {
+    |            ^^^^^
+...
+294 |     pub fn find_process_mut(&mut self, pid: u32) -> Option<&mut Process> {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: field `max_events` is never read
+  --> kernel/src/context.rs:43:9
+   |
+37 | pub struct ContextConfig {
+   |            ------------- field in this struct
+...
+43 |     pub max_events: usize,
+   |         ^^^^^^^^^^
+
+warning: associated function `decompress` is never used
+   --> kernel/src/compressor.rs:111:12
+    |
+ 17 | impl StateCompressor {
+    | -------------------- associated function in this implementation
+...
+111 |     pub fn decompress(latent: &[f32]) -> String {
+    |            ^^^^^^^^^^
+
+warning: method `ticks` is never used
+   --> kernel/src/scheduler.rs:250:12
+    |
+ 37 | impl ExecutiveLoop {
+    | ------------------ method in this implementation
+...
+250 |     pub fn ticks(&self) -> u64 {
+    |            ^^^^^
+
+warning: methods `has_events` and `drain_events` are never used
+  --> kernel/src/keyboard.rs:88:12
+   |
+34 | impl Keyboard {
+   | ------------- methods in this implementation
+...
+88 |     pub fn has_events(&self) -> bool {
+   |            ^^^^^^^^^^
+...
+93 |     pub fn drain_events(&mut self) -> alloc::vec::Vec<KeyEvent> {
+   |            ^^^^^^^^^^^^
+
+warning: method `current_input` is never used
+   --> kernel/src/shell.rs:287:12
+    |
+ 53 | impl Shell {
+    | ---------- method in this implementation
+...
+287 |     pub fn current_input(&self) -> &str {
+    |            ^^^^^^^^^^^^^
+
+warning: fields `left` and `right` are never read
+  --> kernel/src/mouse.rs:10:9
+   |
+ 9 | pub struct MouseButtons {
+   |            ------------ fields in this struct
+10 |     pub left: bool,
+   |         ^^^^
+11 |     pub right: bool,
+   |         ^^^^^
+   |
+   = note: `MouseButtons` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: struct `MouseEvent` is never constructed
+  --> kernel/src/mouse.rs:16:12
+   |
+16 | pub struct MouseEvent {
+   |            ^^^^^^^^^^
+
+warning: enum `MouseEventType` is never used
+  --> kernel/src/mouse.rs:25:10
+   |
+25 | pub enum MouseEventType {
+   |          ^^^^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> kernel/src/mouse.rs:36:9
+   |
+34 | pub struct Mouse {
+   |            ----- fields in this struct
+35 |     /// Current X position.
+36 |     pub x: usize,
+   |         ^
+37 |     /// Current Y position.
+38 |     pub y: usize,
+   |         ^
+39 |     /// Previous X position (for erasing old cursor).
+40 |     prev_x: usize,
+   |     ^^^^^^
+41 |     /// Previous Y position.
+42 |     prev_y: usize,
+   |     ^^^^^^
+43 |     /// Button state.
+44 |     pub buttons: MouseButtons,
+   |         ^^^^^^^
+45 |     /// Previous button state (for detecting clicks).
+46 |     prev_buttons: MouseButtons,
+   |     ^^^^^^^^^^^^
+47 |     /// Screen width bound.
+48 |     max_x: usize,
+   |     ^^^^^
+49 |     /// Screen height bound.
+50 |     max_y: usize,
+   |     ^^^^^
+51 |     /// Whether the cursor has moved and needs redraw.
+52 |     pub cursor_dirty: bool,
+   |         ^^^^^^^^^^^^
+53 |     /// Sensitivity multiplier.
+54 |     sensitivity: f32,
+   |     ^^^^^^^^^^^
+
+warning: associated items `update`, `render_cursor`, and `draw_cursor_shape` are never used
+   --> kernel/src/mouse.rs:81:12
+    |
+ 57 | impl Mouse {
+    | ---------- associated items in this implementation
+...
+ 81 |     pub fn update(&mut self, dx: i32, dy: i32, left: bool, right: bool)...
+    |            ^^^^^^
+...
+125 |     pub fn render_cursor(&mut self, fb: &mut Framebuffer) {
+    |            ^^^^^^^^^^^^^
+...
+139 |     fn draw_cursor_shape(fb: &mut Framebuffer, x: usize, y: usize) {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: fields `x`, `y`, `width`, and `height` are never read
+  --> kernel/src/compositor.rs:15:9
+   |
+14 | pub struct Rect {
+   |            ---- fields in this struct
+15 |     pub x: usize,
+   |         ^
+16 |     pub y: usize,
+   |         ^
+17 |     pub width: usize,
+   |         ^^^^^
+18 |     pub height: usize,
+   |         ^^^^^^
+   |
+   = note: `Rect` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: methods `contains` and `intersects` are never used
+  --> kernel/src/compositor.rs:22:12
+   |
+21 | impl Rect {
+   | --------- methods in this implementation
+22 |     pub fn contains(&self, x: usize, y: usize) -> bool {
+   |            ^^^^^^^^
+...
+26 |     pub fn intersects(&self, other: &Rect) -> bool {
+   |            ^^^^^^^^^^
+
+warning: variants `Normal`, `Minimized`, and `Maximized` are never constructed
+  --> kernel/src/compositor.rs:37:5
+   |
+36 | pub enum WindowState {
+   |          ----------- variants in this enum
+37 |     Normal,
+   |     ^^^^^^
+38 |     Minimized,
+   |     ^^^^^^^^^
+39 |     Maximized,
+   |     ^^^^^^^^^
+   |
+   = note: `WindowState` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: multiple fields are never read
+  --> kernel/src/compositor.rs:44:9
+   |
+43 | pub struct Window {
+   |            ------ fields in this struct
+44 |     pub id: WindowId,
+   |         ^^
+45 |     pub title: String,
+   |         ^^^^^
+46 |     pub rect: Rect,
+   |         ^^^^
+47 |     pub z_index: usize,
+   |         ^^^^^^^
+48 |     pub state: WindowState,
+   |         ^^^^^
+49 |     pub focused: bool,
+   |         ^^^^^^^
+50 |     pub dirty: bool,
+   |         ^^^^^
+51 |     /// Content lines to display in the window body.
+52 |     pub content: Vec<String>,
+   |         ^^^^^^^
+53 |     /// Background color.
+54 |     pub bg_color: u32,
+   |         ^^^^^^^^
+55 |     /// Border color.
+56 |     pub border_color: u32,
+   |         ^^^^^^^^^^^^
+
+warning: associated items `new`, `render`, `push_content`, `hit_title_bar`, and `hit_close_button` are never used
+   --> kernel/src/compositor.rs:60:12
+    |
+ 59 | impl Window {
+    | ----------- associated items in this implementation
+ 60 |     pub fn new(id: WindowId, title: &str, rect: Rect) -> Self {
+    |            ^^^
+...
+ 76 |     pub fn render(&mut self, fb: &mut Framebuffer) {
+    |            ^^^^^^
+...
+138 |     pub fn push_content(&mut self, text: &str) {
+    |            ^^^^^^^^^^^^
+...
+148 |     pub fn hit_title_bar(&self, x: usize, y: usize) -> bool {
+    |            ^^^^^^^^^^^^^
+...
+157 |     pub fn hit_close_button(&self, x: usize, y: usize) -> bool {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: fields `windows`, `next_id`, `focused_id`, `full_redraw`, and `bg_color` are never read
+   --> kernel/src/compositor.rs:170:9
+    |
+168 | pub struct Compositor {
+    |            ---------- fields in this struct
+169 |     /// All windows, ordered by z-index (back to front).
+170 |     pub windows: Vec<Window>,
+    |         ^^^^^^^
+171 |     /// Next window ID to assign.
+172 |     next_id: WindowId,
+    |     ^^^^^^^
+173 |     /// The currently focused window ID.
+174 |     pub focused_id: Option<WindowId>,
+    |         ^^^^^^^^^^
+175 |     /// Whether the entire screen needs a redraw.
+176 |     pub full_redraw: bool,
+    |         ^^^^^^^^^^^
+177 |     /// Desktop background color.
+178 |     pub bg_color: u32,
+    |         ^^^^^^^^
+
+warning: multiple methods are never used
+   --> kernel/src/compositor.rs:193:12
+    |
+181 | impl Compositor {
+    | --------------- methods in this implementation
+...
+193 |     pub fn create_window(&mut self, title: &str, x: usize, y: usize, wi...
+    |            ^^^^^^^^^^^^^
+...
+220 |     pub fn destroy_window(&mut self, id: WindowId) {
+    |            ^^^^^^^^^^^^^^
+...
+235 |     pub fn focus_window(&mut self, id: WindowId) {
+    |            ^^^^^^^^^^^^
+...
+257 |     pub fn move_window(&mut self, id: WindowId, x: usize, y: usize) {
+    |            ^^^^^^^^^^^
+...
+267 |     pub fn window_at(&self, x: usize, y: usize) -> Option<WindowId> {
+    |            ^^^^^^^^^
+...
+278 |     pub fn get_window_mut(&mut self, id: WindowId) -> Option<&mut Windo...
+    |            ^^^^^^^^^^^^^^
+...
+283 |     pub fn render(&mut self, fb: &mut Framebuffer) {
+    |            ^^^^^^
+...
+305 |     pub fn render_taskbar(&self, fb: &mut Framebuffer) {
+    |            ^^^^^^^^^^^^^^
+
+warning: enum `UiNode` is never used
+  --> kernel/src/ui.rs:14:10
+   |
+14 | pub enum UiNode {
+   |          ^^^^^^
+
+warning: enum `LayoutDirection` is never used
+  --> kernel/src/ui.rs:52:10
+   |
+52 | pub enum LayoutDirection {
+   |          ^^^^^^^^^^^^^^^
+
+warning: fields `target_id` and `event_type` are never read
+  --> kernel/src/ui.rs:61:9
+   |
+59 | pub struct UiEvent {
+   |            ------- fields in this struct
+60 |     /// The ID of the element that was interacted with.
+61 |     pub target_id: String,
+   |         ^^^^^^^^^
+62 |     /// The type of interaction.
+63 |     pub event_type: UiEventType,
+   |         ^^^^^^^^^^
+   |
+   = note: `UiEvent` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Click`, `Hover`, and `Input` are never constructed
+  --> kernel/src/ui.rs:68:5
+   |
+67 | pub enum UiEventType {
+   |          ----------- variants in this enum
+68 |     Click,
+   |     ^^^^^
+69 |     Hover,
+   |     ^^^^^
+70 |     Input(String),
+   |     ^^^^^
+   |
+   = note: `UiEventType` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `to_json` is never used
+  --> kernel/src/ui.rs:75:12
+   |
+73 | impl UiEvent {
+   | ------------ method in this implementation
+74 |     /// Serialize to JSON for injection into LLM context.
+75 |     pub fn to_json(&self) -> String {
+   |            ^^^^^^^
+
+warning: struct `UiRenderer` is never constructed
+  --> kernel/src/ui.rs:94:12
+   |
+94 | pub struct UiRenderer;
+   |            ^^^^^^^^^^
+
+warning: associated functions `render` and `hit_test` are never used
+   --> kernel/src/ui.rs:99:12
+    |
+ 96 | impl UiRenderer {
+    | --------------- associated functions in this implementation
+...
+ 99 |     pub fn render(fb: &mut Framebuffer, node: &UiNode, area: Rect) -> u...
+    |            ^^^^^^
+...
+207 |     pub fn hit_test(node: &UiNode, area: Rect, x: usize, y: usize) -> O...
+    |            ^^^^^^^^
+
+warning: fields `dragging`, `pending_events`, and `shell_window_id` are never read
+  --> kernel/src/desktop.rs:21:5
+   |
+19 | pub struct DesktopAgent {
+   |            ------------ fields in this struct
+20 |     /// Window drag state.
+21 |     dragging: Option<DragState>,
+   |     ^^^^^^^^
+22 |     /// Pending UI events to inject into the LLM context.
+23 |     pub pending_events: Vec<UiEvent>,
+   |         ^^^^^^^^^^^^^^
+24 |     /// The ID of the shell window (always present).
+25 |     pub shell_window_id: Option<WindowId>,
+   |         ^^^^^^^^^^^^^^^
+
+warning: fields `window_id`, `offset_x`, and `offset_y` are never read
+  --> kernel/src/desktop.rs:30:5
+   |
+29 | struct DragState {
+   |        --------- fields in this struct
+30 |     window_id: WindowId,
+   |     ^^^^^^^^^
+31 |     offset_x: usize,
+   |     ^^^^^^^^
+32 |     offset_y: usize,
+   |     ^^^^^^^^
+
+warning: associated items `handle_mouse_event`, `initialize`, `translate_click`, and `system_prompt` are never used
+   --> kernel/src/desktop.rs:46:12
+    |
+ 35 | impl DesktopAgent {
+    | ----------------- associated items in this implementation
+...
+ 46 |     pub fn handle_mouse_event(
+    |            ^^^^^^^^^^^^^^^^^^
+...
+104 |     pub fn initialize(&mut self, compositor: &mut Compositor, screen_wi...
+    |            ^^^^^^^^^^
+...
+122 |     pub fn translate_click(&self, x: usize, y: usize) -> UiEvent {
+    |            ^^^^^^^^^^^^^^^
+...
+130 |     pub fn system_prompt() -> &'static str {
+    |            ^^^^^^^^^^^^^
+
+warning: creating a mutable reference to mutable static
+   --> kernel/src/allocator.rs:178:37
+    |
+178 | ...eturn unsafe { EARLY_BUMP_BUFFER.as_mut_ptr().add(e_start) };
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable reference to mutable static
+    |
+    = note: mutable references to mutable statics are dangerous; it's undefined behavior if any other pointer to the static is used or if any other reference is created for the static while the mutable reference lives
+    = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+    = note: `#[warn(static_mut_refs)]` (part of `#[warn(rust_2024_compatibility)]`) on by default
+
+warning: `kernel` (bin "kernel") generated 65 warnings (run `cargo fix --bin "kernel" -p kernel` to apply 6 suggestions)
+    Finished `release` profile [optimized] target(s) in 0.02s
+Creating boot disk image...
+$ dd if=/dev/zero of=target/esp.img bs=1M count=64
+64+0 records in
+64+0 records out
+67108864 bytes (67 MB, 64 MiB) copied, 0.0531482 s, 1.3 GB/s
+$ mformat -i target/esp.img ::
+$ mmd -i target/esp.img ::/EFI
+$ mmd -i target/esp.img ::/EFI/BOOT
+$ mcopy -i target/esp.img target/x86_64-unknown-uefi/release/kernel.efi ::/EFI/BOOT/BOOTX64.EFI
+Creating weights disk image...
+$ dd if=/dev/zero of=target/weights.img bs=1M count=10
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB, 10 MiB) copied, 0.00531792 s, 2.0 GB/s
+$ dd if=target/mock_weights.bin of=target/weights.img conv=notrunc
+8+0 records in
+8+0 records out
+4096 bytes (4.1 kB, 4.0 KiB) copied, 0.0102195 s, 401 kB/s
+Build complete. Images created in target/
+Running in QEMU...
+$ qemu-system-x86_64 -enable-kvm -bios /usr/share/edk2/x64/OVMF.4m.fd -drive format=raw,file=target/esp.img,index=0,media=disk -drive format=raw,file=target/weights.img,index=1,media=disk -m 16G -net none -nographic -serial stdio -monitor none
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001H[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001HBdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+DEBUG: ENTERED EFI_MAIN DIRECTLY
+KERNEL PANIC OCCURRED
+qemu-system-x86_64: terminating on signal 15 from pid 119920 (timeout)
