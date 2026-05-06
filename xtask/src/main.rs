@@ -159,7 +159,7 @@ fn run(sh: &Shell, _release: bool, graphics: bool) -> anyhow::Result<()> {
                 -drive format=raw,file={weights_path},index=1,media=disk
                 -m 16G
                 -net none
-                -serial stdio
+                -serial tcp:127.0.0.1:5557,server,nowait
                 -usb
                 -device usb-kbd
                 -device usb-tablet
@@ -177,7 +177,7 @@ fn run(sh: &Shell, _release: bool, graphics: bool) -> anyhow::Result<()> {
                 -m 16G
                 -net none
                 -nographic
-                -serial stdio
+                -serial tcp:127.0.0.1:5557,server,nowait
                 -monitor none"
         )
         .run()?;

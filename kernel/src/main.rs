@@ -18,6 +18,7 @@ extern crate alloc;
 mod allocator;
 mod framebuffer;
 mod storage;
+mod serial;
 
 // Phase 1-7: C support
 mod libc_stub;
@@ -75,6 +76,7 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // PHASE 0: Initialize UEFI services and logging
     // ═══════════════════════════════════════════════════════════════════
     uefi::helpers::init().unwrap();
+    crate::serial::init();
     
     // Disable watchdog timer (Code >= 0x10000 for OS use)
     let _ = system_table.boot_services().set_watchdog_timer(0, 0x10000, None);
@@ -164,10 +166,7 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // PHASE 2: Initialize Inference Engine
     // ═══════════════════════════════════════════════════════════════════
     info!("[Phase 2] Initializing inference engine...");
-    let inference = match &weights_data {
-        Some(device) => InferenceEngine::init(device.as_bytes()),
-        None => InferenceEngine::mock(),
-    };
+    let inference = InferenceEngine::serial();
     info!("[Phase 2] Inference engine created!");
     info!("[Phase 2] Inference mode: {:?}", inference.mode);
 

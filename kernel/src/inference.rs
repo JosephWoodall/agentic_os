@@ -17,6 +17,8 @@ pub enum InferenceMode {
     Real,
     /// Mock mode: returns deterministic JSON syscalls based on keyword matching.
     Mock,
+    /// Serial mode: offloads generation to host machine over COM1.
+    Serial,
 }
 
 /// Top-level inference engine wrapping all components.
@@ -92,6 +94,16 @@ impl InferenceEngine {
         }
     }
 
+    /// Create a serial inference engine for offloading.
+    pub fn serial() -> Self {
+        Self {
+            mode: InferenceMode::Serial,
+            tokenizer: Tokenizer::mock(),
+            transformer: None,
+            tick: 0,
+        }
+    }
+
     /// Build a tokenizer from GGUF model metadata.
     fn build_tokenizer(model: &GgufModel) -> Tokenizer {
         if let (Some(tokens), Some(scores)) = (model.vocab_tokens(), model.vocab_scores()) {
@@ -149,7 +161,30 @@ impl InferenceEngine {
         match self.mode {
             InferenceMode::Mock => self.mock_generate(prompt),
             InferenceMode::Real => self.real_generate(prompt, max_tokens),
+            InferenceMode::Serial => self.serial_generate(prompt),
         }
+    }
+
+    /// Serial mode: offload to host machine over COM1.
+    fn serial_generate(&self, prompt: &str) -> String {
+        // Send a marker, the prompt, and an end marker
+        crate::serial::write_str("---PROMPT---\n");
+        crate::serial::write_str(prompt);
+        crate::serial::write_str("\n---END---\n");
+
+        // Wait for the host to send back the JSON response
+        let mut response = String::new();
+        loop {
+            let line = crate::serial::read_line();
+            if line == "---END_RESPONSE---" {
+                break;
+            }
+            if !response.is_empty() {
+                response.push('\n');
+            }
+            response.push_str(&line);
+        }
+        response
     }
 
     /// Real transformer generation.
