@@ -197,9 +197,9 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // PHASE 7: Initialize Mouse, Compositor, Desktop Agent
     // ═══════════════════════════════════════════════════════════════════
     info!("[Phase 7] Initializing compositor and desktop agent...");
-    let mut _mouse = Mouse::new(fb.width, fb.height);
-    let mut _compositor = Compositor::new();
-    let mut _desktop_agent = DesktopAgent::new();
+    let mut mouse = Mouse::new(fb.width, fb.height);
+    let mut compositor = Compositor::new();
+    let mut desktop_agent = DesktopAgent::new();
 
     // ═══════════════════════════════════════════════════════════════════
     // BOOT COMPLETE — Enter main event loop
@@ -253,6 +253,7 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         // Poll keyboard
         keyboard.poll(&mut system_table);
         while let Some(event) = keyboard.next_event() {
+            log::info!("Key Event: {:?}", event);
             if let Some(command) = shell.handle_key(event) {
                 shell.print_colored(
                     &alloc::format!("agentic> {}", command),

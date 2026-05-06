@@ -160,8 +160,9 @@ fn run(sh: &Shell, _release: bool, graphics: bool) -> anyhow::Result<()> {
                 -m 16G
                 -net none
                 -serial stdio
-                -device virtio-mouse-pci
-                -device virtio-keyboard-pci
+                -usb
+                -device usb-kbd
+                -device usb-tablet
                 -monitor tcp:127.0.0.1:5556,server,nowait"
         )
         .run()?;
