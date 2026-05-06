@@ -18,6 +18,8 @@ extern crate alloc;
 mod allocator;
 mod framebuffer;
 mod storage;
+
+// Phase 1-7: C support
 mod libc_stub;
 
 // Phase 2: Inference
@@ -31,7 +33,7 @@ mod inference;
 mod syscall;
 mod grammar;
 
-// Phase 4: Context Management
+// Phase 4: State & Context
 mod state;
 mod context;
 mod compressor;
@@ -39,11 +41,11 @@ mod compressor;
 // Phase 5: Executive Loop
 mod scheduler;
 
-// Phase 6: Shell
+// Phase 6: PID 1 & Shell
 mod keyboard;
 mod shell;
 
-// Phase 7: Semantic Desktop
+// Phase 7: UI & Desktop
 mod mouse;
 mod compositor;
 mod ui;
@@ -53,13 +55,12 @@ use uefi::prelude::*;
 use log::info;
 use uefi::proto::console::gop::GraphicsOutput;
 use alloc::string::String;
-
 use crate::allocator::ALLOCATOR;
 use crate::framebuffer::Framebuffer;
 use crate::storage::BlockDevice;
 use crate::inference::InferenceEngine;
 use crate::scheduler::ExecutiveLoop;
-use crate::keyboard::{Keyboard, KeyEvent};
+use crate::keyboard::Keyboard;
 use crate::shell::Shell;
 use crate::mouse::Mouse;
 use crate::compositor::Compositor;
@@ -74,6 +75,10 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // PHASE 0: Initialize UEFI services and logging
     // ═══════════════════════════════════════════════════════════════════
     uefi::helpers::init().unwrap();
+    
+    // Disable watchdog timer (Code >= 0x10000 for OS use)
+    let _ = system_table.boot_services().set_watchdog_timer(0, 0x10000, None);
+
     info!("════════════════════════════════════════════");
     info!("  AGENTIC OS v0.1 — Probabilistic Kernel   ");
     info!("════════════════════════════════════════════");
@@ -81,9 +86,11 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // ═══════════════════════════════════════════════════════════════════
     // PHASE 1: Memory Initialization
     // ═══════════════════════════════════════════════════════════════════
-    let mut heap_size = 2 * 1024 * 1024 * 1024; // Try 2GB first
+    let mut heap_size = 0;
     let mut heap_start = u64::MAX;
 
+    // Allocate contiguous physical memory for the kernel heap
+    // Note: We try 2GB first, then fall back.
     for &size in &[2 * 1024 * 1024 * 1024, 512 * 1024 * 1024, 128 * 1024 * 1024] {
         let pages = size / 4096;
         if let Ok(ptr) = system_table.boot_services().allocate_pages(
@@ -98,7 +105,7 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     }
 
     if heap_start == u64::MAX {
-        panic!("Failed to allocate even 128MB of contiguous heap memory!");
+        panic!("Failed to allocate contiguous heap memory!");
     }
 
     // If UEFI returns physical address 0, adjust it to avoid Rust null pointer bugs
@@ -106,8 +113,6 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         heap_start += 4096;
         heap_size -= 4096;
     }
-
-    info!("[Phase 1] Initializing bump+slab allocator ({} MB)...", heap_size / 1024 / 1024);
 
     unsafe {
         ALLOCATOR.init(heap_start as usize, heap_size);
@@ -144,14 +149,10 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // ═══════════════════════════════════════════════════════════════════
     // PHASE 1: Storage — Load weights from secondary drive
     // ═══════════════════════════════════════════════════════════════════
-    info!("[Phase 1] Scanning for weights storage...");
     let weights_data = {
         let bt = system_table.boot_services();
         match BlockDevice::find_weights_disk(bt) {
-            Ok(device) => {
-                info!("[Phase 1] Weights disk loaded: {} bytes", device.total_size());
-                Some(device)
-            }
+            Ok(device) => Some(device),
             Err(e) => {
                 log::warn!("[Phase 1] No weights disk found: {:?}. Using mock inference.", e);
                 None
@@ -239,50 +240,39 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         shell.render(&mut fb);
 
         // Brief delay for visual effect
-        for _ in 0..5_000_000 {
+        for _ in 0..10_000_000 {
             core::hint::spin_loop();
         }
     }
 
-    shell.print(&alloc::format!(""));
     shell.print_system("Demo complete. Entering interactive mode...");
-    shell.print(&alloc::format!(""));
     shell.render(&mut fb);
 
-    // ═══════════════════════════════════════════════════════════════════
-    // MAIN EVENT LOOP — Interactive shell
-    // ═══════════════════════════════════════════════════════════════════
     loop {
         // Poll keyboard
         keyboard.poll(&mut system_table);
-
-        // Process key events
         while let Some(event) = keyboard.next_event() {
             if let Some(command) = shell.handle_key(event) {
-                // User pressed Enter — submit to executive
-                info!("SHELL: User command: '{}'", command);
+                shell.print_colored(
+                    &alloc::format!("agentic> {}", command),
+                    framebuffer::colors::WHITE,
+                );
 
                 executive.submit_request(command);
                 let result = executive.tick();
 
-                // Display result
                 if result.starts_with("[ERROR]") {
                     shell.print_error(&result);
-                } else if result.starts_with("[STATE]") {
-                    // Multi-line state output
-                    for line in result.lines() {
-                        shell.print_system(line);
-                    }
                 } else {
                     shell.print_system(&result);
                 }
             }
         }
 
-        // Render if dirty
+        // Periodic render
         shell.render(&mut fb);
 
-        // Small yield to avoid burning CPU
+        // Don't burn 100% CPU
         for _ in 0..10_000 {
             core::hint::spin_loop();
         }
@@ -290,17 +280,28 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    let msg = b"KERNEL PANIC OCCURRED\r\n";
-    for &b in msg {
-        unsafe {
-            core::arch::asm!(
-                "out dx, al",
-                in("dx") 0x3F8u16,
-                in("al") b,
-            );
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    use core::fmt::Write;
+    struct SerialWriter;
+    impl Write for SerialWriter {
+        fn write_str(&mut self, s: &str) -> core::fmt::Result {
+            for b in s.as_bytes() {
+                unsafe {
+                    core::arch::asm!(
+                        "out dx, al",
+                        in("dx") 0x3F8u16,
+                        in("al") *b,
+                    );
+                }
+            }
+            Ok(())
         }
     }
+
+    let mut writer = SerialWriter;
+    let _ = writeln!(writer, "\r\n══ KERNEL PANIC ══");
+    let _ = writeln!(writer, "{}", info);
+    
     loop {
         core::hint::spin_loop();
     }

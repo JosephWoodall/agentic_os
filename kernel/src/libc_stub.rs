@@ -7,13 +7,48 @@ use core::ptr;
 
 #[no_mangle]
 pub unsafe extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void {
-    ptr::copy_nonoverlapping(src as *const u8, dest as *mut u8, n);
+    let mut d = dest as *mut u8;
+    let mut s = src as *const u8;
+    let mut len = n;
+
+    // Word-aligned copy
+    while len >= core::mem::size_of::<usize>() {
+        core::ptr::write_volatile(d as *mut usize, core::ptr::read_volatile(s as *const usize));
+        d = d.add(core::mem::size_of::<usize>());
+        s = s.add(core::mem::size_of::<usize>());
+        len -= core::mem::size_of::<usize>();
+    }
+
+    // Remainder
+    for i in 0..len {
+        core::ptr::write_volatile(d.add(i), core::ptr::read_volatile(s.add(i)));
+    }
     dest
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn memset(s: *mut c_void, c: i32, n: usize) -> *mut c_void {
-    ptr::write_bytes(s as *mut u8, c as u8, n);
+    let mut p = s as *mut u8;
+    let mut len = n;
+    let value = c as u8;
+    
+    // Create a word-sized fill value
+    let mut word_value: usize = 0;
+    for i in 0..core::mem::size_of::<usize>() {
+        word_value |= (value as usize) << (i * 8);
+    }
+
+    // Word-aligned fill
+    while len >= core::mem::size_of::<usize>() {
+        core::ptr::write_volatile(p as *mut usize, word_value);
+        p = p.add(core::mem::size_of::<usize>());
+        len -= core::mem::size_of::<usize>();
+    }
+
+    // Remainder
+    for i in 0..len {
+        core::ptr::write_volatile(p.add(i), value);
+    }
     s
 }
 
