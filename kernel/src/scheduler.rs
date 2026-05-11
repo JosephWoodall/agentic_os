@@ -76,7 +76,7 @@ impl ExecutiveLoop {
     /// Execute one tick of the executive loop.
     ///
     /// Returns the result string for display/logging.
-    pub fn tick(&mut self) -> String {
+    pub fn tick(&mut self, compositor: &mut crate::compositor::Compositor) -> String {
         self.tick_count += 1;
         self.state.current_tick = self.tick_count;
 
@@ -118,7 +118,7 @@ impl ExecutiveLoop {
         }
 
         // ---- 5. PARSE & DISPATCH ----
-        let result = self.execute_syscall(&json_str, user_input.as_deref());
+        let result = self.execute_syscall(&json_str, user_input.as_deref(), compositor);
 
         // ---- 6. UPDATE: Feed results back and update state ----
         let result_str = result.to_context_string();
@@ -159,7 +159,7 @@ impl ExecutiveLoop {
     }
 
     /// Execute a syscall from JSON, handling side effects on SystemState.
-    fn execute_syscall(&mut self, json: &str, _user_input: Option<&str>) -> SyscallResult {
+    fn execute_syscall(&mut self, json: &str, _user_input: Option<&str>, compositor: &mut crate::compositor::Compositor) -> SyscallResult {
         let result = Dispatcher::parse_and_dispatch(json);
 
         // Apply side effects to SystemState based on the result
@@ -170,8 +170,33 @@ impl ExecutiveLoop {
                     let name = syscall.name.unwrap_or("unnamed");
                     let priority = syscall.priority.unwrap_or(0);
                     let pid = self.state.spawn_with_priority(name, priority);
+                    
+                    // Create a physical window for this process
+                    let offset = (pid as usize * 30) % 200;
+                    compositor.create_window(
+                        name,
+                        20 + offset, // X offset (left side of screen)
+                        20 + offset, // Y offset
+                        400,         // Width
+                        300,         // Height
+                    );
+                    
                     return SyscallResult::ProcessSpawned(pid);
                 }
+            }
+            SyscallResult::UiUpdated(_) => {
+                 if let Ok((syscall, _)) = serde_json_core::from_str::<Syscall>(json) {
+                    if syscall.command == "create_window" {
+                        let name = syscall.name.unwrap_or("Window");
+                        let wid = compositor.create_window(name, 50, 50, 400, 300);
+                        return SyscallResult::UiUpdated(wid);
+                    } else if syscall.command == "destroy_window" {
+                        if let Some(wid) = syscall.window_id {
+                            compositor.destroy_window(wid);
+                            return SyscallResult::UiUpdated(wid);
+                        }
+                    }
+                 }
             }
             SyscallResult::ProcessKilled(pid) => {
                 let pid = *pid;
@@ -199,6 +224,33 @@ impl ExecutiveLoop {
             SyscallResult::StateInfo(_) => {
                 // Return the actual serialized state
                 return SyscallResult::StateInfo(self.state.serialize_for_llm());
+            }
+            SyscallResult::FileData(_) => {
+                if let Ok((syscall, _)) = serde_json_core::from_str::<Syscall>(json) {
+                    if syscall.command == "read_fs" {
+                        let path = syscall.path.unwrap_or("/");
+                        if let Some(data) = self.state.vfs.get(path) {
+                            return SyscallResult::FileData(data.clone());
+                        } else {
+                            return SyscallResult::Error(SyscallError::ImpossibleOperation(format!("File not found: {}", path)));
+                        }
+                    } else if syscall.command == "write_fs" {
+                        let path = syscall.path.unwrap_or("/tmp/output");
+                        let data = syscall.data.unwrap_or("");
+                        self.state.vfs.insert(alloc::string::String::from(path), alloc::string::String::from(data));
+                        return SyscallResult::Ok(format!("Wrote {} bytes to {}", data.len(), path));
+                    } else if syscall.command == "list_fs" {
+                        let mut files = alloc::string::String::new();
+                        for key in self.state.vfs.keys() {
+                            files.push_str(key);
+                            files.push('\n');
+                        }
+                        if files.is_empty() {
+                            return SyscallResult::FileData(alloc::string::String::from("No files found."));
+                        }
+                        return SyscallResult::FileData(files);
+                    }
+                }
             }
             _ => {}
         }

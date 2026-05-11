@@ -1,0 +1,27 @@
+/home/redleadr/workspace/agentic_os/target/debug/deps/kernel-0ce197769eacc7f0.d: kernel/src/main.rs kernel/src/allocator.rs kernel/src/framebuffer.rs kernel/src/storage.rs kernel/src/serial.rs kernel/src/libc_stub.rs kernel/src/tensor.rs kernel/src/tokenizer.rs kernel/src/transformer.rs kernel/src/gguf.rs kernel/src/inference.rs kernel/src/syscall.rs kernel/src/grammar.rs kernel/src/state.rs kernel/src/context.rs kernel/src/compressor.rs kernel/src/scheduler.rs kernel/src/keyboard.rs kernel/src/shell.rs kernel/src/mouse.rs kernel/src/compositor.rs kernel/src/ui.rs kernel/src/desktop.rs
+
+/home/redleadr/workspace/agentic_os/target/debug/deps/libkernel-0ce197769eacc7f0.rmeta: kernel/src/main.rs kernel/src/allocator.rs kernel/src/framebuffer.rs kernel/src/storage.rs kernel/src/serial.rs kernel/src/libc_stub.rs kernel/src/tensor.rs kernel/src/tokenizer.rs kernel/src/transformer.rs kernel/src/gguf.rs kernel/src/inference.rs kernel/src/syscall.rs kernel/src/grammar.rs kernel/src/state.rs kernel/src/context.rs kernel/src/compressor.rs kernel/src/scheduler.rs kernel/src/keyboard.rs kernel/src/shell.rs kernel/src/mouse.rs kernel/src/compositor.rs kernel/src/ui.rs kernel/src/desktop.rs
+
+kernel/src/main.rs:
+kernel/src/allocator.rs:
+kernel/src/framebuffer.rs:
+kernel/src/storage.rs:
+kernel/src/serial.rs:
+kernel/src/libc_stub.rs:
+kernel/src/tensor.rs:
+kernel/src/tokenizer.rs:
+kernel/src/transformer.rs:
+kernel/src/gguf.rs:
+kernel/src/inference.rs:
+kernel/src/syscall.rs:
+kernel/src/grammar.rs:
+kernel/src/state.rs:
+kernel/src/context.rs:
+kernel/src/compressor.rs:
+kernel/src/scheduler.rs:
+kernel/src/keyboard.rs:
+kernel/src/shell.rs:
+kernel/src/mouse.rs:
+kernel/src/compositor.rs:
+kernel/src/ui.rs:
+kernel/src/desktop.rs:

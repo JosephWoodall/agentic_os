@@ -39,6 +39,8 @@ pub enum WindowState {
     Maximized,
 }
 
+pub const TITLE_BAR_HEIGHT: usize = LINE_HEIGHT + 10;
+
 /// A window managed by the compositor.
 pub struct Window {
     pub id: WindowId,
@@ -67,8 +69,8 @@ impl Window {
             focused: false,
             dirty: true,
             content: Vec::new(),
-            bg_color: 0x00111111,       // Dark background
-            border_color: colors::MID_GRAY,
+            bg_color: colors::PANEL_BG,
+            border_color: colors::BORDER,
         }
     }
 
@@ -80,41 +82,49 @@ impl Window {
         self.dirty = false;
 
         let r = &self.rect;
+        let radius = 8;
 
-        // Window background
-        fb.fill_rect(r.x, r.y, r.width, r.height, self.bg_color);
+        // Window background (rounded)
+        fb.fill_rounded_rect(r.x, r.y, r.width, r.height, radius, self.bg_color);
 
-        // Border (highlighted if focused)
-        let border_color = if self.focused {
-            colors::ACCENT_BLUE
+        // Border (Cyan if focused, Neon Green if unfocused)
+        if self.focused {
+            fb.draw_neon_rect(r.x, r.y, r.width, r.height, radius, colors::NEON_CYAN);
         } else {
-            self.border_color
-        };
-        fb.draw_rect(r.x, r.y, r.width, r.height, border_color);
+            fb.draw_rounded_rect(r.x, r.y, r.width, r.height, radius, colors::NEON_GREEN);
+        }
 
-        // Title bar
-        let title_bar_height = LINE_HEIGHT + 6;
-        let title_bar_color = if self.focused {
-            colors::TITLE_BAR
-        } else {
-            colors::DARK_GRAY
-        };
-        fb.fill_rect(r.x + 1, r.y + 1, r.width - 2, title_bar_height, title_bar_color);
-        fb.draw_string(
-            r.x + 8,
-            r.y + 3,
-            &self.title,
-            colors::WHITE,
+        // Title bar (glass effect with gradient)
+        fb.fill_rounded_rect_alpha(
+            r.x + 2,
+            r.y + 2,
+            r.width - 4,
+            TITLE_BAR_HEIGHT,
+            radius - 2,
+            colors::TITLE_BAR,
+            180,
         );
 
-        // Close button [X]
+        // Centered title
+        let title_len = self.title.len() * CHAR_WIDTH;
+        let title_x = r.x + (r.width.saturating_sub(title_len)) / 2;
+        fb.draw_string(
+            title_x,
+            r.y + 5,
+            &self.title,
+            if self.focused { colors::NEON_CYAN } else { colors::TEXT_BRIGHT },
+        );
+
+        // Circular close button [X]
+        let close_size = 14;
         let close_x = r.x + r.width - 20;
-        fb.fill_rect(close_x, r.y + 2, 16, title_bar_height - 2, colors::RED);
-        fb.draw_char(close_x + 4, r.y + 3, 'X', colors::WHITE);
+        let close_y = r.y + (TITLE_BAR_HEIGHT - close_size) / 2 + 2;
+        fb.fill_rounded_rect(close_x, close_y, close_size, close_size, close_size / 2, colors::NEON_MAGENTA);
+        fb.draw_char(close_x + 3, close_y + 3, 'X', colors::WHITE);
 
         // Content area
-        let content_y = r.y + title_bar_height + 4;
-        let max_lines = (r.height - title_bar_height - 8) / LINE_HEIGHT;
+        let content_y = r.y + TITLE_BAR_HEIGHT + 6;
+        let max_lines = (r.height - TITLE_BAR_HEIGHT - 12) / LINE_HEIGHT;
         let start_line = if self.content.len() > max_lines {
             self.content.len() - max_lines
         } else {
@@ -129,7 +139,7 @@ impl Window {
                 r.x + 8,
                 content_y + i * LINE_HEIGHT,
                 line,
-                colors::DIM_WHITE,
+                colors::TEXT_BRIGHT,
             );
         }
     }
@@ -146,21 +156,19 @@ impl Window {
 
     /// Check if a point is in the title bar (for dragging).
     pub fn hit_title_bar(&self, x: usize, y: usize) -> bool {
-        let title_bar_height = LINE_HEIGHT + 6;
         x >= self.rect.x
             && x < self.rect.x + self.rect.width
             && y >= self.rect.y
-            && y < self.rect.y + title_bar_height
+            && y < self.rect.y + TITLE_BAR_HEIGHT
     }
 
     /// Check if a point is on the close button.
     pub fn hit_close_button(&self, x: usize, y: usize) -> bool {
         let close_x = self.rect.x + self.rect.width - 20;
-        let title_bar_height = LINE_HEIGHT + 6;
         x >= close_x
             && x < close_x + 16
             && y >= self.rect.y + 2
-            && y < self.rect.y + title_bar_height
+            && y < self.rect.y + TITLE_BAR_HEIGHT
     }
 }
 
@@ -282,13 +290,13 @@ impl Compositor {
     /// Render all windows to the framebuffer.
     pub fn render(&mut self, fb: &mut Framebuffer) {
         if self.full_redraw {
-            // Clear background
-            fb.clear(self.bg_color);
+            // Futuristic Gradient Background (Magenta to Deep Navy)
+            fb.fill_gradient_v(0, 0, fb.width, fb.height, colors::NEON_MAGENTA, colors::BG_DEEP);
 
-            // Draw desktop grid pattern
-            for y in (0..fb.height).step_by(32) {
-                for x in (0..fb.width).step_by(32) {
-                    fb.set_pixel(x, y, 0x00332233);
+            // Digital Grid (very subtle Cyan)
+            for y in (0..fb.height).step_by(24) {
+                for x in (0..fb.width).step_by(24) {
+                    fb.set_pixel_alpha(x, y, colors::NEON_CYAN, 25);
                 }
             }
 
@@ -301,39 +309,50 @@ impl Compositor {
         }
     }
 
-    /// Render a taskbar at the bottom of the screen.
+    /// Render a modern floating dock at the bottom of the screen.
     pub fn render_taskbar(&self, fb: &mut Framebuffer) {
-        let taskbar_h = LINE_HEIGHT + 8;
-        let taskbar_y = fb.height - taskbar_h;
+        let dock_h = LINE_HEIGHT + 12;
+        let dock_w = (fb.width * 3 / 4).min(800);
+        let dock_x = (fb.width - dock_w) / 2;
+        let dock_y = fb.height - dock_h - 10;
 
-        // Taskbar background
-        fb.fill_rect(0, taskbar_y, fb.width, taskbar_h, 0x00222222);
-        fb.fill_rect(0, taskbar_y, fb.width, 1, colors::MID_GRAY);
+        // Dock background (Glassmorphism using Secondary BG)
+        fb.fill_rounded_rect_alpha(dock_x, dock_y, dock_w, dock_h, 10, colors::PANEL_BG, 200);
+        fb.draw_rounded_rect(dock_x, dock_y, dock_w, dock_h, 10, colors::NEON_GREEN);
 
-        // "Start" button
-        fb.fill_rect(4, taskbar_y + 2, 60, taskbar_h - 4, colors::TITLE_BAR);
-        fb.draw_string(10, taskbar_y + 4, "Agentic", colors::WHITE);
+        // "Agentic" Logo/Button
+        fb.draw_string(dock_x + 15, dock_y + 6, "AGENTIC", colors::NEON_CYAN);
 
         // Window buttons
-        let mut btn_x = 70;
+        let mut btn_x = dock_x + 85;
         for w in &self.windows {
-            let btn_color = if Some(w.id) == self.focused_id {
-                colors::ACCENT_BLUE
+            if btn_x + 100 > dock_x + dock_w {
+                break;
+            }
+
+            let focused = Some(w.id) == self.focused_id;
+            let btn_color = if focused {
+                colors::NEON_MAGENTA
             } else {
                 colors::DARK_GRAY
             };
-            let title_chars = w.title.len().min(12);
+
+            let title_chars = w.title.len().min(10);
             let btn_width = title_chars * CHAR_WIDTH + 16;
 
-            fb.fill_rect(btn_x, taskbar_y + 2, btn_width, taskbar_h - 4, btn_color);
+            fb.fill_rounded_rect_alpha(btn_x, dock_y + 4, btn_width, dock_h - 8, 4, btn_color, 150);
+            if focused {
+                fb.draw_rounded_rect(btn_x, dock_y + 4, btn_width, dock_h - 8, 4, colors::TEXT_BRIGHT);
+            }
+
             fb.draw_string(
                 btn_x + 8,
-                taskbar_y + 4,
+                dock_y + 6,
                 &w.title[..title_chars],
-                colors::WHITE,
+                colors::TEXT_BRIGHT,
             );
 
-            btn_x += btn_width + 4;
+            btn_x += btn_width + 8;
         }
     }
 }

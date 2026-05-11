@@ -132,6 +132,8 @@ impl core::fmt::Display for EventType {
     }
 }
 
+use alloc::collections::BTreeMap;
+
 /// The global system state containing all processes and the event log.
 pub struct SystemState {
     pub processes: Vec<Process>,
@@ -142,16 +144,23 @@ pub struct SystemState {
     pub max_events: usize,
     /// Current tick number.
     pub current_tick: u64,
+    /// Virtual Filesystem (In-Memory)
+    pub vfs: BTreeMap<String, String>,
 }
 
 impl SystemState {
     pub fn new() -> Self {
+        let mut vfs = BTreeMap::new();
+        vfs.insert(String::from("/etc/config"), String::from("theme=dark\nresolution=1280x800"));
+        vfs.insert(String::from("/home/user/notes.txt"), String::from("Remember to test the new window manager."));
+
         Self {
             processes: Vec::new(),
             next_pid: 1,
             event_log: VecDeque::with_capacity(64),
             max_events: 64,
             current_tick: 0,
+            vfs,
         }
     }
 

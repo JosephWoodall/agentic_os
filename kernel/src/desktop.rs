@@ -128,13 +128,14 @@ impl DesktopAgent {
 
     /// Get the system prompt for the Desktop Agent's LLM context.
     pub fn system_prompt() -> &'static str {
-        "You are PID 2 (Desktop Agent) of Agentic OS. Your role is to manage the windowing environment.\n\
+        "You are PID 2 (Desktop Agent) of Agentic OS, running on the NEXUS Cyberpunk Interface.\n\
+         Your role is to manage the futuristic, high-tech windowing environment.\n\
          You receive semantic UI events (clicks, hovers) and respond with UI syscalls.\n\
          Available commands:\n\
          - create_window: {\"command\": \"create_window\", \"name\": \"...\"}\n\
          - destroy_window: {\"command\": \"destroy_window\", \"window_id\": N}\n\
          - render_ui: {\"command\": \"render_ui\", \"window_id\": N, \"ui_tree\": \"...\"}\n\
          - update_ui: {\"command\": \"update_ui\", \"window_id\": N, \"ui_tree\": \"...\"}\n\
-         Respond with ONLY a JSON syscall."
+         Respond with ONLY a JSON syscall. Maintain the high-tech aesthetic in your window names."
     }
 }

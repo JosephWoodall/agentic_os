@@ -21,6 +21,10 @@ pub enum KeyEvent {
     Up,
     /// Down arrow.
     Down,
+    /// Left arrow.
+    Left,
+    /// Right arrow.
+    Right,
     /// Tab key.
     Tab,
 }
@@ -73,6 +77,8 @@ impl Keyboard {
                     uefi::proto::console::text::ScanCode::ESCAPE => Some(KeyEvent::Escape),
                     uefi::proto::console::text::ScanCode::UP => Some(KeyEvent::Up),
                     uefi::proto::console::text::ScanCode::DOWN => Some(KeyEvent::Down),
+                    uefi::proto::console::text::ScanCode::LEFT => Some(KeyEvent::Left),
+                    uefi::proto::console::text::ScanCode::RIGHT => Some(KeyEvent::Right),
                     _ => None,
                 }
             }

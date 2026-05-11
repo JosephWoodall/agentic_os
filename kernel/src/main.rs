@@ -185,10 +185,11 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     info!("[Phase 6] Initializing Natural Language Shell...");
     let shell_margin = 10;
+    let shell_width = (fb.width / 2) - shell_margin * 2;
     let mut shell = Shell::new(
+        fb.width / 2 + shell_margin, // X offset starts at halfway point
         shell_margin,
-        shell_margin,
-        fb.width - shell_margin * 2,
+        shell_width,
         fb.height - shell_margin * 2,
     );
 
@@ -197,8 +198,12 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     // ═══════════════════════════════════════════════════════════════════
     info!("[Phase 7] Initializing compositor and desktop agent...");
     let mut mouse = Mouse::new(fb.width, fb.height);
+    mouse.initialize(&mut system_table); // Initialize hardware
     let mut compositor = Compositor::new();
     let mut desktop_agent = DesktopAgent::new();
+
+    // Initialize desktop environment (creates shell window, etc.)
+    desktop_agent.initialize(&mut compositor, fb.width, fb.height);
 
     // ═══════════════════════════════════════════════════════════════════
     // BOOT COMPLETE — Enter main event loop
@@ -217,61 +222,74 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     shell.print(&alloc::format!(""));
 
     // Initial render
+    fb.clear(framebuffer::colors::BG_DEEP); // Use the new deep navy background
+    compositor.full_redraw = true;
+    compositor.render(&mut fb);
+    compositor.render_taskbar(&mut fb);
     shell.render(&mut fb);
+    mouse.render_cursor(&mut fb);
 
-    // Demonstration: run a few ticks with simulated input
-    let demo_commands = ["hello", "spawn browser", "status"];
-    for cmd in &demo_commands {
-        shell.print_colored(
-            &alloc::format!("agentic> {}", cmd),
-            framebuffer::colors::WHITE,
-        );
-
-        executive.submit_request(String::from(*cmd));
-        let result = executive.tick();
-
-        // Color based on result type
-        if result.starts_with("[ERROR]") {
-            shell.print_error(&result);
-        } else {
-            shell.print_system(&result);
-        }
-
-        shell.render(&mut fb);
-
-        // Brief delay for visual effect
-        for _ in 0..10_000_000 {
-            core::hint::spin_loop();
-        }
-    }
-
-    shell.print_system("Demo complete. Entering interactive mode...");
-    shell.render(&mut fb);
+    let mut tick_timer = 0;
 
     loop {
+        let mut ui_dirty = false;
+        let mut should_tick = false;
+
         // Poll keyboard
         keyboard.poll(&mut system_table);
         while let Some(event) = keyboard.next_event() {
-            log::info!("Key Event: {:?}", event);
-            if let Some(command) = shell.handle_key(event) {
-                shell.print_colored(
-                    &alloc::format!("agentic> {}", command),
-                    framebuffer::colors::WHITE,
-                );
-
-                executive.submit_request(command);
-                let result = executive.tick();
-
-                if result.starts_with("[ERROR]") {
-                    shell.print_error(&result);
-                } else {
-                    shell.print_system(&result);
+            // Check if it's a mouse control key (arrows/space)
+            if let Some(mouse_event) = mouse.handle_key_fallback(event) {
+                if let Some(action) = desktop_agent.handle_mouse_event(mouse_event, &mut compositor) {
+                    log::info!("Desktop action: {}", action);
                 }
+            } else if let Some(command) = shell.handle_key(event) {
+                executive.submit_request(command);
+                should_tick = true;
             }
+            ui_dirty = true;
         }
 
-        // Periodic render
-        shell.render(&mut fb);
+        // Poll mouse
+        if let Some(mouse_event) = mouse.poll(&mut system_table) {
+            if let Some(action) = desktop_agent.handle_mouse_event(mouse_event, &mut compositor) {
+                log::info!("Desktop action: {}", action);
+            }
+            ui_dirty = true;
+        }
+
+        tick_timer += 1;
+        // Trigger a background tick every ~5 million spin loops if idle
+        if tick_timer > 5_000_000 {
+            should_tick = true;
+            tick_timer = 0;
+        }
+
+        if should_tick {
+            let result = executive.tick(&mut compositor);
+            if result.starts_with("[ERROR]") {
+                shell.print_error(&result);
+            } else if result.starts_with("[OK] ") {
+                shell.print_system(&result[5..]);
+            } else if result.starts_with("Process yielded") {
+                // Ignore
+            } else {
+                shell.print_system(&result);
+            }
+            ui_dirty = true;
+        }
+
+        // Handle shell or compositor dirty state
+        if shell.dirty || compositor.full_redraw || ui_dirty {
+            // For high-tech Cyberpunk UI, we prefer full redraws for consistent effects
+            compositor.full_redraw = true;
+            compositor.render(&mut fb);
+            compositor.render_taskbar(&mut fb);
+            shell.render(&mut fb);
+        }
+
+        // Mouse cursor is rendered independently at the end to keep it on top
+        mouse.render_cursor(&mut fb);
 
         // Don't burn 100% CPU
         for _ in 0..10_000 {
@@ -282,8 +300,6 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    log::error!("\r\n══ KERNEL PANIC ══\r\n{}", info);
-    
     use core::fmt::Write;
     struct SerialWriter;
     impl Write for SerialWriter {

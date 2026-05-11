@@ -2,19 +2,36 @@
 
 use font8x8::UnicodeFonts;
 
-/// Color constants for the Agentic OS visual identity.
+/// Color constants for the Agentic OS visual identity (Format: 0x00BBGGRR).
 pub mod colors {
     pub const BLACK: u32 = 0x00000000;
     pub const WHITE: u32 = 0x00FFFFFF;
-    pub const GREEN: u32 = 0x0000FF00;
-    pub const CYAN: u32 = 0x0000FFFF;
-    pub const RED: u32 = 0x000000FF;       // BGR format in framebuffer
-    pub const YELLOW: u32 = 0x0000FFFF;
-    pub const DIM_WHITE: u32 = 0x00AAAAAA;
-    pub const ACCENT_BLUE: u32 = 0x00FF8844; // Warm blue in BGR
+    
+    // Futuristic UI Color Scheme (0x00BBGGRR)
+    pub const BG_DEEP: u32 = 0x001F0A0A;       // Deep Navy (#0A0A1F)
+    pub const PANEL_BG: u32 = 0x002B1212;      // Secondary BG (#12122B)
+    pub const GLASS_BG: u32 = 0x00402020;      // Slightly lighter for glass effect
+    
+    pub const NEON_CYAN: u32 = 0x00FFF500;     // Primary Cyan (#00F5FF)
+    pub const NEON_MAGENTA: u32 = 0x00AA00FF;  // Accent Magenta (#FF00AA)
+    pub const NEON_GREEN: u32 = 0x004DFF7B;    // Highlight Neon Green (#7BFF4D)
+    
+    pub const TITLE_BAR: u32 = 0x003A1A1A;     // Slightly lighter navy
+    pub const BORDER: u32 = 0x004DFF7B;        // Default border is Neon Green
+    pub const BORDER_FOCUS: u32 = 0x00FFF500;  // Cyan for focused windows
+    
+    pub const TEXT_BRIGHT: u32 = 0x00FFF8E0;   // Text (#E0F8FF)
+    pub const TEXT_MUTED: u32 = 0x00AA9999;
+    
+    // Legacy support aliases
+    pub const RED: u32 = 0x002222EE;
+    pub const GREEN: u32 = 0x004DFF7B;
+    pub const CYAN: u32 = 0x00FFF500;
+    pub const YELLOW: u32 = 0x0000DDFF;
+    pub const DIM_WHITE: u32 = 0x00FFF8E0;
     pub const DARK_GRAY: u32 = 0x00333333;
     pub const MID_GRAY: u32 = 0x00666666;
-    pub const TITLE_BAR: u32 = 0x00442200;   // Dark blue-ish in BGR
+    pub const ACCENT_BLUE: u32 = 0x00FFF500;
 }
 
 /// Character dimensions for font8x8 glyphs.
@@ -73,6 +90,170 @@ impl Framebuffer {
             fb[i * 4 + 1] = g;
             fb[i * 4 + 2] = b;
             fb[i * 4 + 3] = 0;
+        }
+    }
+
+    /// Set a pixel with alpha blending (0-255).
+    pub fn set_pixel_alpha(&mut self, x: usize, y: usize, color: u32, alpha: u8) {
+        if x >= self.width || y >= self.height || alpha == 0 {
+            return;
+        }
+        if alpha == 255 {
+            self.set_pixel(x, y, color);
+            return;
+        }
+
+        let offset = (y * self.stride + x) * 4;
+        let fb = self.as_mut_slice();
+        if offset + 3 < fb.len() {
+            let src_r = (color & 0xFF) as u16;
+            let src_g = ((color >> 8) & 0xFF) as u16;
+            let src_b = ((color >> 16) & 0xFF) as u16;
+
+            let dst_r = fb[offset] as u16;
+            let dst_g = fb[offset + 1] as u16;
+            let dst_b = fb[offset + 2] as u16;
+
+            let a = alpha as u16;
+            let inv_a = 255 - a;
+
+            fb[offset] = ((src_r * a + dst_r * inv_a) / 255) as u8;
+            fb[offset + 1] = ((src_g * a + dst_g * inv_a) / 255) as u8;
+            fb[offset + 2] = ((src_b * a + dst_b * inv_a) / 255) as u8;
+        }
+    }
+
+    /// Draw a filled rectangle with alpha blending.
+    pub fn fill_rect_alpha(&mut self, x: usize, y: usize, w: usize, h: usize, color: u32, alpha: u8) {
+        for dy in 0..h {
+            for dx in 0..w {
+                self.set_pixel_alpha(x + dx, y + dy, color, alpha);
+            }
+        }
+    }
+
+    /// Draw a vertical gradient.
+    pub fn fill_gradient_v(&mut self, x: usize, y: usize, w: usize, h: usize, color_top: u32, color_bottom: u32) {
+        if h == 0 { return; }
+        let tr = (color_top & 0xFF) as i32;
+        let tg = ((color_top >> 8) & 0xFF) as i32;
+        let tb = ((color_top >> 16) & 0xFF) as i32;
+
+        let br = (color_bottom & 0xFF) as i32;
+        let bg = ((color_bottom >> 8) & 0xFF) as i32;
+        let bb = ((color_bottom >> 16) & 0xFF) as i32;
+
+        for dy in 0..h {
+            let r = tr + (br - tr) * dy as i32 / h as i32;
+            let g = tg + (bg - tg) * dy as i32 / h as i32;
+            let b = tb + (bb - tb) * dy as i32 / h as i32;
+            let color = (r as u32) | ((g as u32) << 8) | ((b as u32) << 16);
+            for dx in 0..w {
+                self.set_pixel(x + dx, y + dy, color);
+            }
+        }
+    }
+
+    /// Draw a rounded rectangle.
+    pub fn fill_rounded_rect(&mut self, x: usize, y: usize, w: usize, h: usize, r: usize, color: u32) {
+        if r == 0 {
+            self.fill_rect(x, y, w, h, color);
+            return;
+        }
+
+        for dy in 0..h {
+            for dx in 0..w {
+                let mut draw = true;
+                if dx < r && dy < r { // Top-left
+                    if (r - dx) * (r - dx) + (r - dy) * (r - dy) > r * r { draw = false; }
+                } else if dx >= w - r && dy < r { // Top-right
+                    let idx = dx - (w - r - 1);
+                    if (idx) * (idx) + (r - dy) * (r - dy) > r * r { draw = false; }
+                } else if dx < r && dy >= h - r { // Bottom-left
+                    let idy = dy - (h - r - 1);
+                    if (r - dx) * (r - dx) + (idy) * (idy) > r * r { draw = false; }
+                } else if dx >= w - r && dy >= h - r { // Bottom-right
+                    let idx = dx - (w - r - 1);
+                    let idy = dy - (h - r - 1);
+                    if (idx) * (idx) + (idy) * (idy) > r * r { draw = false; }
+                }
+
+                if draw {
+                    self.set_pixel(x + dx, y + dy, color);
+                }
+            }
+        }
+    }
+
+    /// Draw a rounded rectangle with alpha blending.
+    pub fn fill_rounded_rect_alpha(&mut self, x: usize, y: usize, w: usize, h: usize, r: usize, color: u32, alpha: u8) {
+        if r == 0 {
+            self.fill_rect_alpha(x, y, w, h, color, alpha);
+            return;
+        }
+
+        for dy in 0..h {
+            for dx in 0..w {
+                let mut draw = true;
+                if dx < r && dy < r {
+                    if (r - dx) * (r - dx) + (r - dy) * (r - dy) > r * r { draw = false; }
+                } else if dx >= w - r && dy < r {
+                    let idx = dx - (w - r - 1);
+                    if (idx) * (idx) + (r - dy) * (r - dy) > r * r { draw = false; }
+                } else if dx < r && dy >= h - r {
+                    let idy = dy - (h - r - 1);
+                    if (r - dx) * (r - dx) + (idy) * (idy) > r * r { draw = false; }
+                } else if dx >= w - r && dy >= h - r {
+                    let idx = dx - (w - r - 1);
+                    let idy = dy - (h - r - 1);
+                    if (idx) * (idx) + (idy) * (idy) > r * r { draw = false; }
+                }
+
+                if draw {
+                    self.set_pixel_alpha(x + dx, y + dy, color, alpha);
+                }
+            }
+        }
+    }
+
+    /// Draw a neon glowing rectangle (multi-layered border).
+    pub fn draw_neon_rect(&mut self, x: usize, y: usize, w: usize, h: usize, r: usize, color: u32) {
+        // Outer glow layers
+        self.draw_rounded_rect_alpha(x.saturating_sub(2), y.saturating_sub(2), w + 4, h + 4, r + 2, color, 40);
+        self.draw_rounded_rect_alpha(x.saturating_sub(1), y.saturating_sub(1), w + 2, h + 2, r + 1, color, 80);
+        // Main border
+        self.draw_rounded_rect(x, y, w, h, r, color);
+    }
+
+    pub fn draw_rounded_rect(&mut self, x: usize, y: usize, w: usize, h: usize, r: usize, color: u32) {
+        self.draw_rounded_rect_alpha(x, y, w, h, r, color, 255);
+    }
+
+    pub fn draw_rounded_rect_alpha(&mut self, x: usize, y: usize, w: usize, h: usize, r: usize, color: u32, alpha: u8) {
+        for dy in 0..h {
+            for dx in 0..w {
+                let is_border = dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1;
+                if !is_border { continue; }
+
+                let mut draw = true;
+                if dx < r && dy < r {
+                    if (r - dx) * (r - dx) + (r - dy) * (r - dy) > r * r { draw = false; }
+                } else if dx >= w - r && dy < r {
+                    let idx = dx - (w - r - 1);
+                    if (idx) * (idx) + (r - dy) * (r - dy) > r * r { draw = false; }
+                } else if dx < r && dy >= h - r {
+                    let idy = dy - (h - r - 1);
+                    if (r - dx) * (r - dx) + (idy) * (idy) > r * r { draw = false; }
+                } else if dx >= w - r && dy >= h - r {
+                    let idx = dx - (w - r - 1);
+                    let idy = dy - (h - r - 1);
+                    if (idx) * (idx) + (idy) * (idy) > r * r { draw = false; }
+                }
+
+                if draw {
+                    self.set_pixel_alpha(x + dx, y + dy, color, alpha);
+                }
+            }
         }
     }
 

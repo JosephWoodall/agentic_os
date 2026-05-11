@@ -1,8 +1,9 @@
-//! Phase 7: Mouse Driver — UEFI SimplePointer protocol for cursor input.
+//! Phase 7: Mouse Driver — UEFI SimplePointer support with Keyboard Fallback.
 //!
 //! Tracks absolute X/Y position and renders a hardware cursor independently of LLM ticks.
 
 use crate::framebuffer::Framebuffer;
+use uefi::proto::console::pointer::Pointer;
 
 /// Mouse button state.
 #[derive(Debug, Clone, Copy)]
@@ -32,25 +33,12 @@ pub enum MouseEventType {
 
 /// Mouse driver with absolute position tracking and cursor rendering.
 pub struct Mouse {
-    /// Current X position.
     pub x: usize,
-    /// Current Y position.
     pub y: usize,
-    /// Previous X position (for erasing old cursor).
-    prev_x: usize,
-    /// Previous Y position.
-    prev_y: usize,
-    /// Button state.
     pub buttons: MouseButtons,
-    /// Previous button state (for detecting clicks).
     prev_buttons: MouseButtons,
-    /// Screen width bound.
     max_x: usize,
-    /// Screen height bound.
     max_y: usize,
-    /// Whether the cursor has moved and needs redraw.
-    pub cursor_dirty: bool,
-    /// Sensitivity multiplier.
     sensitivity: f32,
 }
 
@@ -59,8 +47,6 @@ impl Mouse {
         Self {
             x: screen_width / 2,
             y: screen_height / 2,
-            prev_x: screen_width / 2,
-            prev_y: screen_height / 2,
             buttons: MouseButtons {
                 left: false,
                 right: false,
@@ -71,32 +57,38 @@ impl Mouse {
             },
             max_x: screen_width.saturating_sub(1),
             max_y: screen_height.saturating_sub(1),
-            cursor_dirty: true,
-            sensitivity: 1.0,
+            sensitivity: 6.0, // Extra high sensitivity
         }
     }
 
-    /// Update mouse state from UEFI SimplePointer data.
-    /// `dx`, `dy` are relative movement values from the pointer protocol.
+    pub fn initialize(&self, system_table: &mut uefi::prelude::SystemTable<uefi::prelude::Boot>) {
+        let bt = system_table.boot_services();
+        if let Ok(handle) = bt.get_handle_for_protocol::<Pointer>() {
+            if let Ok(mut pointer) = bt.open_protocol_exclusive::<Pointer>(handle) {
+                let _ = pointer.reset(false);
+                log::info!("[Mouse] SimplePointer protocol reset.");
+            }
+        }
+    }
+
     pub fn update(&mut self, dx: i32, dy: i32, left: bool, right: bool) -> Option<MouseEvent> {
-        self.prev_x = self.x;
-        self.prev_y = self.y;
+        if dx == 0 && dy == 0 && left == self.buttons.left && right == self.buttons.right {
+            return None;
+        }
+
         self.prev_buttons = self.buttons;
 
-        // Apply movement with sensitivity
-        let new_x = self.x as i32 + (dx as f32 * self.sensitivity) as i32;
-        let new_y = self.y as i32 + (dy as f32 * self.sensitivity) as i32;
+        let scaled_dx = (dx as f32 * self.sensitivity) as i32;
+        let scaled_dy = (dy as f32 * self.sensitivity) as i32;
+
+        let new_x = self.x as i32 + scaled_dx;
+        let new_y = self.y as i32 + scaled_dy;
 
         self.x = new_x.max(0).min(self.max_x as i32) as usize;
         self.y = new_y.max(0).min(self.max_y as i32) as usize;
 
         self.buttons = MouseButtons { left, right };
 
-        if self.x != self.prev_x || self.y != self.prev_y {
-            self.cursor_dirty = true;
-        }
-
-        // Determine event type
         let event_type = if left && !self.prev_buttons.left {
             MouseEventType::LeftClick
         } else if !left && self.prev_buttons.left {
@@ -105,10 +97,8 @@ impl Mouse {
             MouseEventType::RightClick
         } else if !right && self.prev_buttons.right {
             MouseEventType::RightRelease
-        } else if self.x != self.prev_x || self.y != self.prev_y {
-            MouseEventType::Move
         } else {
-            return None;
+            MouseEventType::Move
         };
 
         Some(MouseEvent {
@@ -119,48 +109,62 @@ impl Mouse {
         })
     }
 
-    /// Render the mouse cursor using XOR overlay (flicker-free, independent of LLM).
-    ///
-    /// Call this AFTER all other rendering to overlay the cursor.
-    pub fn render_cursor(&mut self, fb: &mut Framebuffer) {
-        if !self.cursor_dirty {
-            return;
+    pub fn poll(&mut self, system_table: &mut uefi::prelude::SystemTable<uefi::prelude::Boot>) -> Option<MouseEvent> {
+        let bt = system_table.boot_services();
+
+        if let Ok(handle) = bt.get_handle_for_protocol::<Pointer>() {
+            if let Ok(mut pointer) = bt.open_protocol_exclusive::<Pointer>(handle) {
+                if let Ok(Some(state)) = pointer.read_state() {
+                    return self.update(
+                        state.relative_movement[0],
+                        state.relative_movement[1],
+                        state.button[0],
+                        state.button[1],
+                    );
+                }
+            }
         }
-        self.cursor_dirty = false;
+        None
+    }
 
-        // Erase old cursor (XOR again to restore)
-        Self::draw_cursor_shape(fb, self.prev_x, self.prev_y);
+    /// Handle keyboard as mouse movement fallback.
+    pub fn handle_key_fallback(&mut self, event: crate::keyboard::KeyEvent) -> Option<MouseEvent> {
+        use crate::keyboard::KeyEvent;
+        let mut dx = 0;
+        let mut dy = 0;
+        let mut left = self.buttons.left;
 
-        // Draw new cursor
+        match event {
+            KeyEvent::Up => dy = -20,
+            KeyEvent::Down => dy = 20,
+            KeyEvent::Left => dx = -20,
+            KeyEvent::Right => dx = 20,
+            KeyEvent::Char(' ') => left = !left,
+            _ => return None,
+        }
+
+        self.update(dx, dy, left, self.buttons.right)
+    }
+
+    pub fn render_cursor(&mut self, fb: &mut Framebuffer) {
         Self::draw_cursor_shape(fb, self.x, self.y);
     }
 
-    /// Draw an arrow cursor shape using XOR.
     fn draw_cursor_shape(fb: &mut Framebuffer, x: usize, y: usize) {
-        // Simple arrow cursor (12x16 pixels)
         let cursor_data: &[&[u8]] = &[
-            &[1],
-            &[1, 1],
-            &[1, 1, 1],
-            &[1, 1, 1, 1],
-            &[1, 1, 1, 1, 1],
-            &[1, 1, 1, 1, 1, 1],
-            &[1, 1, 1, 1, 1, 1, 1],
-            &[1, 1, 1, 1, 1, 1, 1, 1],
-            &[1, 1, 1, 1, 1, 1, 1, 1, 1],
-            &[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            &[1, 1, 1, 1, 1, 1],
-            &[1, 1, 1, 0, 1, 1],
-            &[1, 1, 0, 0, 0, 1, 1],
-            &[1, 0, 0, 0, 0, 1, 1],
-            &[0, 0, 0, 0, 0, 0, 1, 1],
-            &[0, 0, 0, 0, 0, 0, 1],
+            &[1], &[1, 1], &[1, 1, 1], &[1, 1, 1, 1], &[1, 1, 1, 1, 1],
+            &[1, 1, 1, 1, 1, 1], &[1, 1, 1, 1, 1, 1, 1], &[1, 1, 1, 1, 1, 1, 1, 1],
+            &[1, 1, 1, 1, 1, 1, 1, 1, 1], &[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            &[1, 1, 1, 1, 1, 1], &[1, 1, 1, 0, 1, 1], &[1, 1, 0, 0, 0, 1, 1],
+            &[1, 0, 0, 0, 0, 1, 1], &[0, 0, 0, 0, 0, 0, 1, 1], &[0, 0, 0, 0, 0, 0, 1],
         ];
 
+        use crate::framebuffer::colors;
         for (dy, row) in cursor_data.iter().enumerate() {
             for (dx, &pixel) in row.iter().enumerate() {
                 if pixel == 1 {
-                    fb.xor_rect(x + dx, y + dy, 1, 1);
+                    fb.set_pixel_alpha(x + dx + 1, y + dy + 1, colors::NEON_MAGENTA, 180);
+                    fb.set_pixel(x + dx, y + dy, colors::NEON_CYAN);
                 }
             }
         }

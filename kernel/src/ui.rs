@@ -145,16 +145,18 @@ impl UiRenderer {
             UiNode::Button {
                 label, color, ..
             } => {
-                let btn_width = label.len() * CHAR_WIDTH + 16;
-                let btn_height = LINE_HEIGHT + 8;
+                let btn_width = label.len() * CHAR_WIDTH + 24;
+                let btn_height = LINE_HEIGHT + 12;
 
-                fb.fill_rect(area.x, area.y, btn_width, btn_height, *color);
-                fb.draw_rect(area.x, area.y, btn_width, btn_height, colors::WHITE);
+                // Button Background (Rounded with Neon Green border by default)
+                fb.fill_rounded_rect_alpha(area.x, area.y, btn_width, btn_height, 6, colors::PANEL_BG, 180);
+                fb.draw_neon_rect(area.x, area.y, btn_width, btn_height, 6, colors::NEON_GREEN);
+                
                 fb.draw_string(
-                    area.x + 8,
-                    area.y + 4,
+                    area.x + 12,
+                    area.y + 6,
                     label,
-                    colors::WHITE,
+                    colors::TEXT_BRIGHT,
                 );
 
                 btn_height
@@ -165,39 +167,44 @@ impl UiRenderer {
                 value,
                 ..
             } => {
-                let input_width = area.width.min(300);
-                let input_height = LINE_HEIGHT + 8;
+                let input_width = area.width.min(400);
+                let input_height = LINE_HEIGHT + 12;
 
-                fb.fill_rect(area.x, area.y, input_width, input_height, 0x00222222);
-                fb.draw_rect(area.x, area.y, input_width, input_height, colors::MID_GRAY);
+                // Cyberpunk Input (Minimalist with bottom neon Cyan line)
+                fb.fill_rect_alpha(area.x, area.y, input_width, input_height, colors::BLACK, 100);
+                // Bottom neon line
+                for dx in 0..input_width {
+                    fb.set_pixel(area.x + dx, area.y + input_height - 1, colors::NEON_CYAN);
+                }
 
                 let display_text = if value.is_empty() { placeholder } else { value };
                 let text_color = if value.is_empty() {
-                    colors::MID_GRAY
+                    colors::TEXT_MUTED
                 } else {
-                    colors::WHITE
+                    colors::TEXT_BRIGHT
                 };
-                fb.draw_string(area.x + 4, area.y + 4, display_text, text_color);
+                fb.draw_string(area.x + 8, area.y + 6, display_text, text_color);
 
                 input_height
             }
 
             UiNode::List { items, .. } => {
                 let mut y_offset = 0;
-                for (i, item) in items.iter().enumerate() {
-                    let bullet = if i < items.len() { "• " } else { "  " };
+                for item in items {
+                    let bullet = " > ";
                     let text = format!("{}{}", bullet, item);
-                    fb.draw_string(area.x, area.y + y_offset, &text, colors::DIM_WHITE);
-                    y_offset += LINE_HEIGHT;
+                    fb.draw_string(area.x, area.y + y_offset, &text, colors::NEON_GREEN);
+                    y_offset += LINE_HEIGHT + 4;
                 }
                 y_offset
             }
 
             UiNode::Separator => {
-                for x in area.x..area.x + area.width {
-                    fb.set_pixel(x, area.y + 2, colors::MID_GRAY);
+                // Glowing Neon Green separator
+                for dx in 0..area.width {
+                    fb.set_pixel_alpha(area.x + dx, area.y + 2, colors::NEON_GREEN, 150);
                 }
-                5
+                8
             }
         }
     }
@@ -211,8 +218,8 @@ impl UiRenderer {
 
         match node {
             UiNode::Button { id, label, .. } => {
-                let btn_width = label.len() * CHAR_WIDTH + 16;
-                let btn_height = LINE_HEIGHT + 8;
+                let btn_width = label.len() * CHAR_WIDTH + 24;
+                let btn_height = LINE_HEIGHT + 12;
                 let btn_rect = Rect {
                     x: area.x,
                     y: area.y,
@@ -227,8 +234,8 @@ impl UiRenderer {
                 let input_rect = Rect {
                     x: area.x,
                     y: area.y,
-                    width: area.width.min(300),
-                    height: LINE_HEIGHT + 8,
+                    width: area.width.min(400),
+                    height: LINE_HEIGHT + 12,
                 };
                 if input_rect.contains(x, y) {
                     return Some(id.clone());

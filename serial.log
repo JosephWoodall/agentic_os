@@ -1,0 +1,77 @@
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001H[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001HBdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+[ INFO]: kernel/src/main.rs@084: ════════════════════════════════════════════
+[ INFO]: kernel/src/main.rs@085:   AGENTIC OS v0.1 — Probabilistic Kernel   
+[ INFO]: kernel/src/main.rs@086: ════════════════════════════════════════════
+[ INFO]: kernel/src/main.rs@122: [Phase 1] Allocator ready. 2048 MB heap.
+[ INFO]: kernel/src/main.rs@127: [Phase 1] Initializing GOP framebuffer...
+[ INFO]: kernel/src/main.rs@142: [Phase 1] Framebuffer: 1280x800 stride=1280
+[ INFO]: kernel/src/storage.rs@031: Scanning for weights storage...
+[ INFO]: kernel/src/storage.rs@059: GGUF magic detected! Loading weights (20480 blocks)...
+[ INFO]: kernel/src/storage.rs@068: Weights disk loaded successfully: 10485760 bytes
+[ INFO]: kernel/src/main.rs@168: [Phase 2] Initializing inference engine...
+[ INFO]: kernel/src/tokenizer.rs@087: Tokenizer::mock: before adding entries
+[ INFO]: kernel/src/tokenizer.rs@095: Tokenizer::mock: before a-z
+[ INFO]: kernel/src/tokenizer.rs@107: Tokenizer::mock: before 0-9
+[ INFO]: kernel/src/tokenizer.rs@115: Tokenizer::mock: before Self::new()
+[ INFO]: kernel/src/tokenizer.rs@032: Tokenizer::new: start
+[ INFO]: kernel/src/tokenizer.rs@034: Tokenizer::new: iterating vocab
+[ INFO]: kernel/src/tokenizer.rs@039: Tokenizer::new: setting special tokens
+[ INFO]: kernel/src/tokenizer.rs@045: Tokenizer::new: done
+[ INFO]: kernel/src/main.rs@170: [Phase 2] Inference engine created!
+[ INFO]: kernel/src/main.rs@171: [Phase 2] Inference mode: Serial
+[ INFO]: kernel/src/main.rs@176: [Phase 5] Initializing executive loop...
+[ INFO]: kernel/src/tokenizer.rs@087: Tokenizer::mock: before adding entries
+[ INFO]: kernel/src/tokenizer.rs@095: Tokenizer::mock: before a-z
+[ INFO]: kernel/src/tokenizer.rs@107: Tokenizer::mock: before 0-9
+[ INFO]: kernel/src/tokenizer.rs@115: Tokenizer::mock: before Self::new()
+[ INFO]: kernel/src/tokenizer.rs@032: Tokenizer::new: start
+[ INFO]: kernel/src/tokenizer.rs@034: Tokenizer::new: iterating vocab
+[ INFO]: kernel/src/tokenizer.rs@039: Tokenizer::new: setting special tokens
+[ INFO]: kernel/src/tokenizer.rs@045: Tokenizer::new: done
+[ INFO]: kernel/src/main.rs@178: [Phase 5] Executive loop ready. PID 1 spawned.
+[ INFO]: kernel/src/main.rs@183: [Phase 6] Initializing keyboard driver...
+[ INFO]: kernel/src/main.rs@186: [Phase 6] Initializing Natural Language Shell...
+[ INFO]: kernel/src/main.rs@198: [Phase 7] Initializing compositor and desktop agent...
+[ INFO]: kernel/src/main.rs@206: ════════════════════════════════════════════
+[ INFO]: kernel/src/main.rs@207:   BOOT COMPLETE — All phases initialized   
+[ INFO]: kernel/src/main.rs@208: ════════════════════════════════════════════
+[ INFO]: kernel/src/scheduler.rs@083: === EXECUTIVE TICK 1 ===
+[ INFO]: kernel/src/scheduler.rs@100: CONTEXT: 1426 chars (~356 tokens)
+---PROMPT---
+You are the Executive Kernel of Agentic OS, a Probabilistic State-Space Operating System.
+You receive system state and user requests. You respond with EXACTLY ONE valid JSON syscall.
+
+AXIOMATIC CONSTRAINTS (inviolable):
+1. You MUST NOT kill PID 1 (yourself). Self-termination is undefined behavior.
+2. You MUST NOT execute operations that corrupt memory integrity.
+3. You MUST prioritize user safety. Destructive operations require explicit confirmation.
+4. You MUST respond with valid JSON matching the syscall schema.
+
+AVAILABLE COMMANDS:
+- spawn_process: {"command": "spawn_process", "name": "...", "priority": N}
+- kill_process: {"command": "kill_process", "pid": N}
+- read_fs: {"command": "read_fs", "path": "..."}
+- write_fs: {"command": "write_fs", "path": "...", "data": "..."}
+- list_fs: {"command": "list_fs", "path": "..."}
+- hydrate_process: {"command": "hydrate_process", "pid": N}
+- compress_process: {"command": "compress_process", "pid": N}
+- query_state: {"command": "query_state"}
+- yield: {"command": "yield"}
+- send_message: {"command": "send_message", "dest_pid": N, "message": "..."}
+
+Respond with ONLY the JSON syscall. No explanation.
+
+[SYSTEM_STATE]
+Tick: 1 | Active Processes: 1 | Total: 1
+PID=1 | NAME=Executive (PID 1) | ATTN=1.0 | PRI=10 | Process spawned.
+[RECENT_EVENTS]
+T0 [SPAWN] PID 1 'Executive (PID 1)' spawned
+T0 [USER_INPUT] User: hello
+
+
+[USER_REQUEST] hello
+
+Respond with JSON syscall:
+
+---END---

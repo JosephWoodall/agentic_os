@@ -11,15 +11,23 @@ pub unsafe extern "C" fn memcpy(dest: *mut c_void, src: *const c_void, n: usize)
     let mut s = src as *const u8;
     let mut len = n;
 
-    // Word-aligned copy
-    while len >= core::mem::size_of::<usize>() {
-        core::ptr::write_volatile(d as *mut usize, core::ptr::read_volatile(s as *const usize));
-        d = d.add(core::mem::size_of::<usize>());
-        s = s.add(core::mem::size_of::<usize>());
-        len -= core::mem::size_of::<usize>();
+    // Fast path if both pointers share the same alignment offset
+    if (d as usize) % core::mem::size_of::<usize>() == (s as usize) % core::mem::size_of::<usize>() {
+        while (d as usize) % core::mem::size_of::<usize>() != 0 && len > 0 {
+            core::ptr::write_volatile(d, core::ptr::read_volatile(s));
+            d = d.add(1);
+            s = s.add(1);
+            len -= 1;
+        }
+        while len >= core::mem::size_of::<usize>() {
+            core::ptr::write_volatile(d as *mut usize, core::ptr::read_volatile(s as *const usize));
+            d = d.add(core::mem::size_of::<usize>());
+            s = s.add(core::mem::size_of::<usize>());
+            len -= core::mem::size_of::<usize>();
+        }
     }
 
-    // Remainder
+    // Remainder or unaligned byte-by-byte copy
     for i in 0..len {
         core::ptr::write_volatile(d.add(i), core::ptr::read_volatile(s.add(i)));
     }
@@ -36,6 +44,13 @@ pub unsafe extern "C" fn memset(s: *mut c_void, c: i32, n: usize) -> *mut c_void
     let mut word_value: usize = 0;
     for i in 0..core::mem::size_of::<usize>() {
         word_value |= (value as usize) << (i * 8);
+    }
+
+    // Align the pointer to avoid unaligned volatile writes
+    while (p as usize) % core::mem::size_of::<usize>() != 0 && len > 0 {
+        core::ptr::write_volatile(p, value);
+        p = p.add(1);
+        len -= 1;
     }
 
     // Word-aligned fill

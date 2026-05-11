@@ -53,7 +53,7 @@ pub struct Shell {
 impl Shell {
     /// Create a new shell that fills the given region.
     pub fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
-        let visible_lines = (height / LINE_HEIGHT).saturating_sub(3); // Reserve space for header + input
+        let visible_lines = (height / LINE_HEIGHT).saturating_sub(4);
 
         let mut shell = Self {
             input_buffer: String::new(),
@@ -70,20 +70,18 @@ impl Shell {
             dirty: true,
         };
 
-        // Welcome message
-        shell.print_colored("╔══════════════════════════════════════════════════════════╗", colors::ACCENT_BLUE);
-        shell.print_colored("║     AGENTIC OS — Probabilistic State-Space Kernel       ║", colors::ACCENT_BLUE);
-        shell.print_colored("║     Natural Language Shell v0.1                         ║", colors::ACCENT_BLUE);
-        shell.print_colored("╚══════════════════════════════════════════════════════════╝", colors::ACCENT_BLUE);
+        // Cyberpunk Welcome message
+        shell.print_colored(" >> NEXUS INTERFACE v0.1.0-STABLE", colors::NEON_CYAN);
+        shell.print_colored(" >> PROTOCOL: PROBABILISTIC STATE-SPACE KERNEL", colors::NEON_CYAN);
+        shell.print_colored(" >> STATUS: OPTIMAL", colors::NEON_CYAN);
+        shell.print_colored(" --------------------------------------------------", colors::NEON_MAGENTA);
+        shell.print_colored(" Ready for Natural Language Intent Processing.", colors::WHITE);
+        shell.print_colored(" Available cognitive operations:", colors::DIM_WHITE);
+        shell.print_colored("  - Neural Tasking: 'spawn terminal', 'execute browser'", colors::NEON_CYAN);
+        shell.print_colored("  - Latent Management: 'compress state', 'hydrate session'", colors::NEON_CYAN);
+        shell.print_colored("  - System Analytics: 'status', 'nexus info'", colors::NEON_CYAN);
         shell.print_colored("", colors::WHITE);
-        shell.print_colored("Welcome to Agentic OS! Here is what you can do:", colors::WHITE);
-        shell.print_colored(" - Manage Processes: 'run a browser', 'spawn terminal', 'kill 3'", colors::DIM_WHITE);
-        shell.print_colored(" - Continuous State: 'sleep 2' (compress), 'wake 2' (hydrate)", colors::DIM_WHITE);
-        shell.print_colored(" - File System: 'read config', 'save file'", colors::DIM_WHITE);
-        shell.print_colored(" - System Info: 'status', 'info'", colors::DIM_WHITE);
-        shell.print_colored("", colors::WHITE);
-        shell.print_colored("Type natural language commands. The LLM executive will translate", colors::DIM_WHITE);
-        shell.print_colored("your intent into system calls.", colors::DIM_WHITE);
+        shell.print_colored(" [Awaiting neural input...]", colors::DIM_WHITE);
         shell.print_colored("", colors::WHITE);
 
         shell
@@ -160,6 +158,7 @@ impl Shell {
                 self.cursor_pos = 0;
                 None
             }
+            KeyEvent::Left | KeyEvent::Right => None,
         }
     }
 
@@ -233,65 +232,72 @@ impl Shell {
 
         let x = self.x_offset;
         let y = self.y_offset;
+        let radius = 10;
 
-        // Clear shell area
-        fb.fill_rect(x, y, self.width, self.height, colors::BLACK);
+        // Modern Shell (Rounded, semi-transparent using Secondary BG)
+        fb.fill_rounded_rect_alpha(x, y, self.width, self.height, radius, colors::PANEL_BG, 220);
+        fb.draw_neon_rect(x, y, self.width, self.height, radius, colors::NEON_GREEN);
 
-        // Draw border
-        fb.draw_rect(x, y, self.width, self.height, colors::DARK_GRAY);
+        // Draw title bar (glass effect)
+        let title_bar_h = LINE_HEIGHT + 10;
+        fb.fill_rounded_rect_alpha(x + 2, y + 2, self.width - 4, title_bar_h, radius - 2, colors::TITLE_BAR, 180);
 
-        // Draw title bar
-        fb.fill_rect(x + 1, y + 1, self.width - 2, LINE_HEIGHT + 4, colors::TITLE_BAR);
+        let title_text = "NEXUS INTERFACE - AGENTIC OS";
+        let title_x = x + (self.width.saturating_sub(title_text.len() * CHAR_WIDTH)) / 2;
         fb.draw_string(
-            x + 8, y + 3,
-            "Agentic OS - Natural Language Shell",
-            colors::WHITE,
+            title_x,
+            y + 5,
+            title_text,
+            colors::NEON_CYAN,
         );
 
         // Draw output lines
-        let content_y = y + LINE_HEIGHT + 8;
-        let end_idx = self.output_lines.len().min(self.scroll_offset + self.visible_lines);
+        let content_y = y + title_bar_h + 10;
+        let end_idx = self
+            .output_lines
+            .len()
+            .min(self.scroll_offset + self.visible_lines);
 
         for (i, line_idx) in (self.scroll_offset..end_idx).enumerate() {
             let line = &self.output_lines[line_idx];
-            fb.draw_string(
-                x + 8,
-                content_y + i * LINE_HEIGHT,
-                &line.text,
-                line.color,
-            );
+            fb.draw_string(x + 12, content_y + i * LINE_HEIGHT, &line.text, line.color);
         }
 
-        // Draw input line
-        let input_y = y + self.height - LINE_HEIGHT - 8;
-        fb.fill_rect(x + 1, input_y - 2, self.width - 2, LINE_HEIGHT + 4, colors::DARK_GRAY);
-        fb.draw_string(x + 8, input_y, PROMPT, colors::GREEN);
+        // Draw input area (modern minimalist)
+        let input_y = y + self.height - LINE_HEIGHT - 12;
+        fb.fill_rect_alpha(x + 5, input_y - 2, self.width - 10, LINE_HEIGHT + 4, colors::BLACK, 150);
+        // Neon underline for input
+        for dx in 5..self.width - 5 {
+            fb.set_pixel(x + dx, input_y + LINE_HEIGHT, colors::NEON_GREEN);
+        }
+
+        fb.draw_string(x + 12, input_y, PROMPT, colors::NEON_MAGENTA);
 
         let prompt_width = PROMPT.len() * CHAR_WIDTH;
         fb.draw_string(
-            x + 8 + prompt_width,
+            x + 12 + prompt_width,
             input_y,
             &self.input_buffer,
-            colors::WHITE,
+            colors::TEXT_BRIGHT,
         );
 
-        // Draw cursor
-        let cursor_x = x + 8 + prompt_width + self.cursor_pos * CHAR_WIDTH;
-        fb.fill_rect(cursor_x, input_y, 2, LINE_HEIGHT - 2, colors::WHITE);
+        // Draw cursor (neon block)
+        let cursor_x = x + 12 + prompt_width + self.cursor_pos * CHAR_WIDTH;
+        fb.fill_rect(cursor_x, input_y, 6, LINE_HEIGHT - 2, colors::NEON_CYAN);
 
-        // Draw scroll indicator if needed
+        // Draw scroll indicator
         if self.output_lines.len() > self.visible_lines {
             let indicator_height = (self.visible_lines as f32 / self.output_lines.len() as f32
-                * (self.height - LINE_HEIGHT - 20) as f32) as usize;
+                * (self.height - title_bar_h - 40) as f32) as usize;
             let indicator_y = content_y
                 + (self.scroll_offset as f32 / self.output_lines.len() as f32
-                    * (self.height - LINE_HEIGHT - 20) as f32) as usize;
+                    * (self.height - title_bar_h - 40) as f32) as usize;
             fb.fill_rect(
-                x + self.width - 4,
+                x + self.width - 6,
                 indicator_y,
                 3,
-                indicator_height.max(8),
-                colors::MID_GRAY,
+                indicator_height.max(10),
+                colors::NEON_CYAN,
             );
         }
     }

@@ -44,6 +44,10 @@ pub struct Syscall<'a> {
     pub message: Option<&'a str>,
     #[serde(default)]
     pub dest_pid: Option<u32>,
+
+    // Error reporting
+    #[serde(default)]
+    pub error: Option<&'a str>,
 }
 
 /// The result of executing a syscall.
@@ -171,8 +175,12 @@ impl Dispatcher {
             }
 
             "yield" | "yield_process" => {
-                log::info!("DISPATCH: yield_process");
-                SyscallResult::Ok(String::from("Process yielded execution."))
+                let msg = match syscall.error {
+                    Some(e) => format!("Process yielded. (LLM Error: {})", e),
+                    None => String::from("Process yielded execution."),
+                };
+                log::info!("DISPATCH: yield_process - {}", msg);
+                SyscallResult::Ok(msg)
             }
 
             // ---- Filesystem Operations ----
@@ -189,7 +197,7 @@ impl Dispatcher {
                 let path = syscall.path.unwrap_or("/tmp/output");
                 let data = syscall.data.unwrap_or("");
                 log::info!("DISPATCH: write_fs '{}' ({} bytes)", path, data.len());
-                SyscallResult::Ok(format!("Wrote {} bytes to '{}'", data.len(), path))
+                SyscallResult::FileData(String::from("mock"))
             }
 
             "list_fs" => {
@@ -276,7 +284,14 @@ impl Dispatcher {
                 let dest = syscall.dest_pid.unwrap_or(1);
                 let msg = syscall.message.unwrap_or("");
                 log::info!("DISPATCH: send_message to PID={}: '{}'", dest, msg);
-                SyscallResult::Ok(format!("Message sent to PID {}", dest))
+                // Return the actual message so the shell can display it
+                SyscallResult::Ok(String::from(msg))
+            }
+
+            "say" | "print" | "notify" => {
+                let msg = syscall.message.unwrap_or("");
+                log::info!("DISPATCH: say '{}'", msg);
+                SyscallResult::Ok(String::from(msg))
             }
 
             // ---- Introspection ----
@@ -314,5 +329,6 @@ pub const VALID_COMMANDS: &[&str] = &[
     "create_window",
     "destroy_window",
     "send_message",
+    "say",
     "query_state",
 ];
